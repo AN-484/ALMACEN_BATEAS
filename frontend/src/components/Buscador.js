@@ -49,12 +49,19 @@ export default function Buscador() {
       />
 
       {resultado ? (
-        <div>
+        <div style={{ marginTop: "20px" }}>
           <h3>{resultado.nombre}</h3>
 
-          <a href={resultado.pdf} target="_blank" rel="noreferrer">
-            Ver hoja SMDS
-          </a>
+          <iframe
+            src={resultado.pdf}
+            width="100%"
+            height="500px"
+            title="SMDS"
+            style={{
+              border: "1px solid #ccc",
+              borderRadius: "10px"
+            }}
+          ></iframe>
         </div>
       ) : (
         codigo && <p>No encontrado</p>

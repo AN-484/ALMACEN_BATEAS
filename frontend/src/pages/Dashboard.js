@@ -1,43 +1,131 @@
- import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import Layout from "../components/Layout";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+
   const dni = localStorage.getItem("dni");
+  const nombre = localStorage.getItem("nombre");
 
   const cerrarSesion = () => {
-    localStorage.removeItem("dni");
+    localStorage.clear();
     navigate("/");
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Bienvenido - DNI: {dni} - {localStorage.getItem("nombre")}</h2>
+    <Layout>
+      <div>
+        {/* ENCABEZADO */}
+        <h2 style={{ marginBottom: "5px" }}>
+          Bienvenido, {nombre}
+        </h2>
 
-      <h3>Módulos</h3>
+        <p style={{ color: "#555" }}>
+          DNI: {dni}
+        </p>
 
-      <button onClick={() => navigate("/smds")} style={{
-    padding: "12px 20px",
-    margin: "10px",
-    borderRadius: "10px",
-    border: "none",
-    backgroundColor: "#273c75",
-    color: "white",
-    fontSize: "16px",
-    cursor: "pointer"
-  }}>
-        📄 SMDS
-      </button>
+        {/* MÓDULOS */}
+        <h3 style={{ marginTop: "30px" }}>Módulos del Sistema</h3>
 
-      <br /><br />
+        <div style={contenedorCards}>
+          
+          {/* SMDS */}
+          <div style={card}>
+            <h4>📄 SMDS</h4>
+            <p>Consulta hojas de seguridad</p>
 
-      <button onClick={cerrarSesion} style={{
-    background: "white",
-    padding: "10px",
-    borderRadius: "12px",
-    boxShadow: "0 0 10px rgba(247, 8, 8, 0.93)"
-  }}>
-        ❌ Salir
-      </button>
-    </div>
+            <button
+              onClick={() => navigate("/smds")}
+              style={btn}
+            >
+              Ingresar
+            </button>
+          </div>
+
+          {/* INVENTARIO (FUTURO) */}
+          <div style={card}>
+            <h4>📦 Inventario</h4>
+            <p>Control de productos</p>
+
+            <button style={btnDisabled}>
+              Próximamente
+            </button>
+          </div>
+
+          {/* REPORTES */}
+          <div style={card}>
+            <h4>📊 Reportes</h4>
+            <p>Análisis del almacén</p>
+
+            <button style={btnDisabled}>
+              Próximamente
+            </button>
+          </div>
+
+          {/* USUARIOS */}
+          <div style={card}>
+            <h4>👤 Usuarios</h4>
+            <p>Gestión de accesos</p>
+
+            <button style={btnDisabled}>
+              Próximamente
+            </button>
+          </div>
+
+        </div>
+
+        {/* BOTÓN SALIR */}
+        <button onClick={cerrarSesion} style={btnSalir}>
+          ❌ Cerrar sesión
+        </button>
+      </div>
+    </Layout>
   );
 }
+
+//////////////////////////////////////////////////
+// 🎨 ESTILOS
+//////////////////////////////////////////////////
+
+const contenedorCards = {
+  display: "flex",
+  gap: "20px",
+  marginTop: "20px",
+  flexWrap: "wrap"
+};
+
+const card = {
+  background: "white",
+  padding: "20px",
+  borderRadius: "12px",
+  boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+  width: "220px",
+  textAlign: "center"
+};
+
+const btn = {
+  marginTop: "10px",
+  padding: "10px",
+  border: "none",
+  borderRadius: "6px",
+  backgroundColor: "#273c75",
+  color: "white",
+  cursor: "pointer",
+  width: "100%"
+};
+
+const btnDisabled = {
+  ...btn,
+  backgroundColor: "#aaa",
+  cursor: "not-allowed"
+};
+
+const btnSalir = {
+  marginTop: "40px",
+  padding: "10px 20px",
+  border: "none",
+  borderRadius: "6px",
+  backgroundColor: "#e84118",
+  color: "white",
+  cursor: "pointer"
+};
