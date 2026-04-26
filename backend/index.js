@@ -20,7 +20,8 @@ const usuarios = [
   { dni: "24884512", nombre: "Santiago Cuyo C." },
   { dni: "02172614", nombre: "José Quispe A." },
   { dni: "40858173", nombre: "Sebastian Mayhua T." },
-  { dni: "71784498", nombre: "Aldair Diaz R." }
+  { dni: "71784498", nombre: "Aldair Diaz R." },
+  { dni: "73463551", nombre: "Betsy Chire M." }
 ];
 
 // 🔐 LOGIN
