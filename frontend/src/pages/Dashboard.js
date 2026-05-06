@@ -31,11 +31,24 @@ export default function Dashboard() {
           
           {/* SMDS */}
           <div style={card}>
-            <h4>📄 SMDS</h4>
+            <h4>📄 MSDS</h4>
             <p>Consulta hojas de seguridad</p>
 
             <button
               onClick={() => navigate("/smds")}
+              style={btn}
+            >
+              Ingresar
+            </button>
+          </div>
+
+          {/* CILINDROS */}
+          <div style={card}>
+            <h4>🧯 SCCO</h4>
+            <p>Sistema de Control de Cilindros Oxiacetilenos</p>
+
+            <button
+              onClick={() => navigate("/cilindros")}
               style={btn}
             >
               Ingresar

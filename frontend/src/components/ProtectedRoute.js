@@ -1,4 +1,5 @@
 import { Navigate } from "react-router-dom";
+import SessionTimeout from "./SessionTimeout";
 
 export default function ProtectedRoute({ children }) {
   const dni = localStorage.getItem("dni");
@@ -7,5 +8,9 @@ export default function ProtectedRoute({ children }) {
     return <Navigate to="/" />;
   }
 
-  return children;
+  return (
+    <SessionTimeout>
+      {children}
+    </SessionTimeout>
+  );
 }
