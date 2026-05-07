@@ -40,7 +40,17 @@ export default function DespachoDevolucionMasivo() {
 
       setProductos(prod);
       setUbicaciones(ubi);
-      setUsuarios(usu);
+      //setUsuarios(usu);
+      const usuariosAutorizados = usu.filter(u => {
+        const nombre = String(u.nombre || "").toUpperCase().trim();
+
+        return (
+            nombre.includes("CESAR RAMIREZ") ||
+            nombre.includes("MIGUEL BENITES")
+        );
+        });
+
+        setUsuarios(usuariosAutorizados);
     } catch (error) {
       console.error(error);
       alert("No se pudieron cargar datos");
