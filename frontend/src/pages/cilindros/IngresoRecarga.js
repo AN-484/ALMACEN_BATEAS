@@ -20,6 +20,7 @@ export default function IngresoRecarga() {
   const [transportistas, setTransportistas] = useState([]);
 
   const [estadoInfo, setEstadoInfo] = useState("");
+  const [obs, setObs] = useState("");
   const [bloquearDatosCilindro, setBloquearDatosCilindro] = useState(false);
 
   const codigoUsuario = localStorage.getItem("codigo");
@@ -130,7 +131,8 @@ export default function IngresoRecarga() {
         nro_documento: nroDocumento.trim(),
         transportista,
         tipo,
-        registrado_por: codigoUsuario
+        registrado_por: codigoUsuario,
+        obs: obs.trim()
       };
 
       const res = await apiPost("/api/cilindros/ingreso-recarga", payload);
@@ -160,6 +162,7 @@ export default function IngresoRecarga() {
     setTransportista("");
     setEstadoInfo("");
     setBloquearDatosCilindro(false);
+    setObs("");
   };
 
   return (
@@ -289,6 +292,15 @@ export default function IngresoRecarga() {
             style={inputReadOnly}
           />
         </Campo>
+
+        <Campo label="Observación">
+          <textarea
+            value={obs}
+            onChange={(e) => setObs(e.target.value)}
+            placeholder="Escriba alguna ocurrencia..."
+            style={textarea}
+          />
+        </Campo>
       </div>
 
       {estadoInfo && (
@@ -405,4 +417,14 @@ const btnGuardar = {
 const btnLimpiar = {
   ...btnGuardar,
   background: "#718093"
+};
+
+const textarea = {
+  width: "100%",
+  minHeight: "80px",
+  padding: "10px",
+  borderRadius: "6px",
+  border: "1px solid #ccc",
+  boxSizing: "border-box",
+  resize: "vertical"
 };

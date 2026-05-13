@@ -11,6 +11,7 @@ export default function DespachoDevolucionMasivo() {
   const [area, setArea] = useState("");
   const [encargado, setEncargado] = useState("");
   const [responsable, setResponsable] = useState("");
+  const [obs, setObs] = useState("");
 
   const [productos, setProductos] = useState([]);
   const [ubicaciones, setUbicaciones] = useState([]);
@@ -209,7 +210,8 @@ export default function DespachoDevolucionMasivo() {
         cilindros: filas.map(f => ({
           cilindro: f.cilindro,
           material: f.material
-        }))
+        })),
+        obs: obs.trim()
       };
 
       const res = await apiPost(
@@ -245,6 +247,7 @@ export default function DespachoDevolucionMasivo() {
     setDisponibles([]);
     setFilas([]);
     liberarAreaDevolucion();
+    setObs("");
   };
 
   return (
@@ -369,6 +372,15 @@ export default function DespachoDevolucionMasivo() {
             value={nombreUsuario || ""}
             readOnly
             style={inputReadOnly}
+          />
+        </Campo>
+
+        <Campo label="Observación / Ocurrencia grupal">
+          <textarea
+            value={obs}
+            onChange={(e) => setObs(e.target.value)}
+            placeholder="Escriba observaciones para este lote..."
+            style={textarea}
           />
         </Campo>
       </div>
@@ -573,4 +585,14 @@ const btnGuardar = {
 const btnLimpiar = {
   ...btnGuardar,
   background: "#718093"
+};
+
+const textarea = {
+  width: "100%",
+  minHeight: "80px",
+  padding: "10px",
+  borderRadius: "6px",
+  border: "1px solid #ccc",
+  boxSizing: "border-box",
+  resize: "vertical"
 };

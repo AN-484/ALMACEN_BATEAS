@@ -9,6 +9,7 @@ export default function IngresoRecargaMasivo() {
   const [guia, setGuia] = useState("");
   const [nroDocumento, setNroDocumento] = useState("");
   const [transportista, setTransportista] = useState("");
+  const [obs, setObs] = useState("");
   const [ubicaciones, setUbicaciones] = useState([]);
 
   const [productos, setProductos] = useState([]);
@@ -179,7 +180,8 @@ export default function IngresoRecargaMasivo() {
         nro_documento: nroDocumento.trim(),
         transportista,
         registrado_por: codigoUsuario,
-        cilindros
+        cilindros,
+        obs: obs.trim()
       };
 
       const res = await apiPost("/api/cilindros/ingreso-recarga-masivo", payload);
@@ -209,6 +211,7 @@ export default function IngresoRecargaMasivo() {
     setNroDocumento("");
     setTransportista("");
     setFilas([nuevaFila()]);
+    setObs("");
   };
 
   return (
@@ -282,6 +285,16 @@ export default function IngresoRecargaMasivo() {
             style={inputReadOnly}
           />
         </Campo>
+
+        <Campo label="Observación / Ocurrencia grupal">
+          <textarea
+            value={obs}
+            onChange={(e) => setObs(e.target.value)}
+            placeholder="Escriba observaciones para este lote..."
+            style={textarea}
+          />
+        </Campo>
+
       </div>
 
       <div style={accionesTop}>
@@ -547,4 +560,14 @@ const btnGuardar = {
 const btnLimpiar = {
   ...btnGuardar,
   background: "#718093"
+};
+
+const textarea = {
+  width: "100%",
+  minHeight: "80px",
+  padding: "10px",
+  borderRadius: "6px",
+  border: "1px solid #ccc",
+  boxSizing: "border-box",
+  resize: "vertical"
 };

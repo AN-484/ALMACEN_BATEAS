@@ -196,7 +196,8 @@ router.post("/ingreso-recarga", async (req, res) => {
       nro_documento,
       transportista,
       tipo,
-      registrado_por
+      registrado_por,
+      obs
     } = req.body;
 
     if (
@@ -293,7 +294,8 @@ router.post("/ingreso-recarga", async (req, res) => {
         producto,
         transportista,
         tipo,
-        registrado_por
+        registrado_por,
+        obs: obs || ""
       });
 
     if (errorMovimiento) throw errorMovimiento;
@@ -310,7 +312,8 @@ router.post("/ingreso-recarga", async (req, res) => {
           material: producto,
           estado: nuevoEstado,
           fecha_mov: fecha,
-          ubicacion: nuevaUbicacion
+          ubicacion: nuevaUbicacion,
+          obs: obs || ""
         })
         .eq("cilindro", cilindro);
 
@@ -325,7 +328,8 @@ router.post("/ingreso-recarga", async (req, res) => {
           //capacidad: "1",
           estado: nuevoEstado,
           fecha_mov: fecha,
-          ubicacion: nuevaUbicacion
+          ubicacion: nuevaUbicacion,
+          obs: obs || ""
         });
 
       if (errorCrearEstado) throw errorCrearEstado;
@@ -421,7 +425,8 @@ router.post("/despacho-devolucion", async (req, res) => {
       tipo,
       encargado_almacen,
       responsable_area,
-      registrado_por
+      registrado_por,
+      obs
     } = req.body;
 
     if (
@@ -501,7 +506,8 @@ router.post("/despacho-devolucion", async (req, res) => {
         tipo,
         encargado_almacen,
         responsable_area,
-        registrado_por
+        registrado_por,
+        obs: obs || ""
       });
 
     if (errorMovimiento) throw errorMovimiento;
@@ -537,7 +543,8 @@ router.post("/despacho-devolucion", async (req, res) => {
         material,
         estado: nuevoEstado,
         fecha_mov: fecha,
-        ubicacion: nuevaUbicacion
+        ubicacion: nuevaUbicacion,
+        obs: obs || ""
       })
       .eq("cilindro", cilindro);
 
@@ -688,7 +695,8 @@ router.get("/reportes/kardex/:cilindro", async (req, res) => {
         detalle: e.nro_guia || "",
         material: e.producto,
         area: "",
-        registrado_por: e.registrado_por
+        registrado_por: e.registrado_por,
+        obs: e.obs || ""
       })),
       ...movimientos.map(m => ({
         fecha: m.fecha,
@@ -698,7 +706,8 @@ router.get("/reportes/kardex/:cilindro", async (req, res) => {
         detalle: m.responsable_area || "",
         material: m.material,
         area: m.area,
-        registrado_por: m.registrado_por
+        registrado_por: m.registrado_por,
+        obs: m.obs || ""
       }))
     ];
 
@@ -723,7 +732,8 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
       nro_documento,
       transportista,
       registrado_por,
-      cilindros
+      cilindros,
+      obs
     } = req.body;
 
     if (
@@ -836,7 +846,8 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
             producto,
             transportista,
             tipo,
-            registrado_por
+            registrado_por,
+            obs: obs || ""
           });
 
         if (errorMovimiento) throw errorMovimiento;
@@ -853,7 +864,8 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
               material: producto,
               estado: nuevoEstado,
               fecha_mov: fecha,
-              ubicacion: nuevaUbicacion
+              ubicacion: nuevaUbicacion,
+              obs: obs || ""
             })
             .eq("cilindro", codigo);
 
@@ -868,7 +880,8 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
               //capacidad: "1",
               estado: nuevoEstado,
               fecha_mov: fecha,
-              ubicacion: nuevaUbicacion
+              ubicacion: nuevaUbicacion,
+              obs: obs || ""
             });
 
           if (errorInsertEstado) throw errorInsertEstado;
@@ -942,7 +955,8 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
       encargado_almacen,
       responsable_area,
       registrado_por,
-      cilindros
+      cilindros,
+      obs
     } = req.body;
 
     if (
@@ -1055,7 +1069,8 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
             tipo,
             encargado_almacen,
             responsable_area,
-            registrado_por
+            registrado_por,
+            obs: obs || ""
           });
 
         if (errorMovimiento) throw errorMovimiento;
@@ -1070,7 +1085,8 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
             material: materialFila,
             estado: nuevoEstado,
             fecha_mov: fecha,
-            ubicacion: nuevaUbicacion
+            ubicacion: nuevaUbicacion,
+            obs: obs || ""
           })
           .eq("cilindro", codigo);
 

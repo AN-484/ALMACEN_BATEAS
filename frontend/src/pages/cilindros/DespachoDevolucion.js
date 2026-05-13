@@ -10,6 +10,7 @@ export default function DespachoDevolucion() {
   const [area, setArea] = useState("");
   const [encargado, setEncargado] = useState("");
   const [responsable, setResponsable] = useState("");
+  const [obs, setObs] = useState("");
 
   const [productos, setProductos] = useState([]);
   const [ubicaciones, setUbicaciones] = useState([]);
@@ -156,7 +157,8 @@ export default function DespachoDevolucion() {
         tipo,
         encargado_almacen: encargado,
         responsable_area: responsable.trim(),
-        registrado_por: codigoUsuario
+        registrado_por: codigoUsuario,
+        obs: obs.trim()
       };
 
       const res = await apiPost("/api/cilindros/despacho-devolucion", payload);
@@ -182,6 +184,7 @@ export default function DespachoDevolucion() {
     setEncargado("");
     setResponsable("");
     setInfo("");
+    setObs("");
   };
 
   return (
@@ -294,6 +297,16 @@ export default function DespachoDevolucion() {
             style={inputReadOnly}
           />
         </Campo>
+
+        <Campo label="Observación">
+          <textarea
+            value={obs}
+            onChange={(e) => setObs(e.target.value)}
+            placeholder="Escriba alguna ocurrencia..."
+            style={textarea}
+          />
+        </Campo>
+
       </div>
 
       {info && (
@@ -410,4 +423,14 @@ const btnGuardar = {
 const btnLimpiar = {
   ...btnGuardar,
   background: "#718093"
+};
+
+const textarea = {
+  width: "100%",
+  minHeight: "80px",
+  padding: "10px",
+  borderRadius: "6px",
+  border: "1px solid #ccc",
+  boxSizing: "border-box",
+  resize: "vertical"
 };

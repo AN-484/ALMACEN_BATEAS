@@ -227,6 +227,7 @@ const calcularAlertaHidro = (fechaHidro) => {
               <th style={th}>Estado</th>
               <th style={th}>Fecha Mov.</th>
               <th style={th}>Ubicación</th>
+              <th style={th}>Obs.</th>
             </tr>
           </thead>
 
@@ -269,6 +270,22 @@ const calcularAlertaHidro = (fechaHidro) => {
 
                   <td style={td}>
                     {nombreUbicacion(d.ubicacion)}
+                  </td>
+
+                  <td style={td}>
+                    <button
+                      disabled={!d.obs || !String(d.obs).trim()}
+                      onClick={() => alert(d.obs)}
+                      style={
+                        !d.obs || !String(d.obs).trim()
+                          ? btnObsDisabled
+                          : btnObs
+                      }
+                    >
+                      {!d.obs || !String(d.obs).trim()
+                        ? "Sin Obs."
+                        : "Ver"}
+                    </button>
                   </td>
                 </tr>
               );
@@ -390,4 +407,23 @@ const td = {
   padding: "10px",
   borderBottom: "1px solid #ddd",
   whiteSpace: "nowrap"
+};
+
+const btnObs = {
+  padding: "6px 10px",
+  border: "none",
+  borderRadius: "6px",
+  background: "#40739e",
+  color: "white",
+  cursor: "pointer"
+};
+
+const btnObsDisabled = {
+  padding: "5px 10px",
+  border: "none",
+  borderRadius: "6px",
+  background: "#dcdde1",
+  color: "#7f8c8d",
+  cursor: "not-allowed",
+  fontSize: "12px"
 };

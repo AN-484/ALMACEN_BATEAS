@@ -122,7 +122,8 @@ function ReporteIngresos() {
     producto: nombreProducto(d.producto),
     transportista: nombreTransportista(d.transportista),
     tipo: nombreMovimiento(d.tipo),
-    registrado_por: nombreUsuario(d.registrado_por)
+    registrado_por: nombreUsuario(d.registrado_por),
+    obs: d.obs || ""
   }));
 
   return (
@@ -196,7 +197,8 @@ function ReporteIngresos() {
           "Producto",
           "Transportista",
           "Tipo",
-          "Registrado por"
+          "Registrado por",
+          "Obs."
         ]}
         rows={rowsExport.map(d => [
           d.fecha,
@@ -206,7 +208,20 @@ function ReporteIngresos() {
           d.producto,
           d.transportista,
           d.tipo,
-          d.registrado_por
+          d.registrado_por,
+          <button
+            disabled={!d.obs || !String(d.obs).trim()}
+            onClick={() => alert(d.obs)}
+            style={
+              !d.obs || !String(d.obs).trim()
+                ? btnObsDisabled
+                : btnObs
+            }
+          >
+            {!d.obs || !String(d.obs).trim()
+              ? "Sin Obs."
+              : "Ver"}
+          </button>
         ])}
       />
     </div>
@@ -292,7 +307,8 @@ function ReporteMovimientos() {
     tipo: nombreMovimiento(d.tipo),
     autorizado_por: nombreUsuario(d.encargado_almacen),
     responsable: d.responsable_area,
-    registrado_por: nombreUsuario(d.registrado_por)
+    registrado_por: nombreUsuario(d.registrado_por),
+    obs: d.obs || ""
   }));
 
   return (
@@ -378,7 +394,8 @@ function ReporteMovimientos() {
           "Tipo",
           "Autorizado por",
           "Responsable",
-          "Registrado por"
+          "Registrado por",
+          "Obs."
         ]}
         rows={rowsExport.map(d => [
           d.fecha,
@@ -388,7 +405,20 @@ function ReporteMovimientos() {
           d.tipo,
           d.autorizado_por,
           d.responsable,
-          d.registrado_por
+          d.registrado_por,
+          <button
+            disabled={!d.obs || !String(d.obs).trim()}
+            onClick={() => alert(d.obs)}
+            style={
+              !d.obs || !String(d.obs).trim()
+                ? btnObsDisabled
+                : btnObs
+            }
+          >
+            {!d.obs || !String(d.obs).trim()
+              ? "Sin Obs."
+              : "Ver"}
+          </button>
         ])}
       />
     </div>
@@ -464,7 +494,8 @@ function ReporteKardex() {
     detalle: d.detalle,
     material: nombreProducto(d.material),
     area: nombreArea(d.area),
-    registrado_por: nombreUsuario(d.registrado_por)
+    registrado_por: nombreUsuario(d.registrado_por),
+    obs: d.obs || ""
   }));
 
   return (
@@ -500,7 +531,8 @@ function ReporteKardex() {
           "Detalle",
           "Material",
           "Área",
-          "Registrado por"
+          "Registrado por",
+          "Obs."
         ]}
         rows={rowsExport.map(d => [
           d.fecha,
@@ -510,7 +542,20 @@ function ReporteKardex() {
           d.detalle,
           d.material,
           d.area,
-          d.registrado_por
+          d.registrado_por,
+          <button
+            disabled={!d.obs || !String(d.obs).trim()}
+            onClick={() => alert(d.obs)}
+            style={
+              !d.obs || !String(d.obs).trim()
+                ? btnObsDisabled
+                : btnObs
+            }
+          >
+            {!d.obs || !String(d.obs).trim()
+              ? "Sin Obs."
+              : "Ver"}
+          </button>
         ])}
       />
     </div>
@@ -637,6 +682,26 @@ const btnBuscar = {
 const btnExcel = {
   ...btnBuscar,
   background: "#44bd32"
+};
+
+const btnObs = {
+  padding: "5px 10px",
+  border: "none",
+  borderRadius: "6px",
+  background: "#40739e",
+  color: "white",
+  cursor: "pointer",
+  fontSize: "12px"
+};
+
+const btnObsDisabled = {
+  padding: "5px 10px",
+  border: "none",
+  borderRadius: "6px",
+  background: "#dcdde1",
+  color: "#7f8c8d",
+  cursor: "not-allowed",
+  fontSize: "12px"
 };
 
 const tablaContenedor = {
