@@ -105,10 +105,40 @@ router.post("/:tabla", puedeModificarDatos, async (req, res) => {
 
     if (error) throw error;
 
+    // ✅ Si se crea un cilindro desde maestros,
+    // también se crea su estado inicial como STOCK / ALMACEN
+    if (req.params.tabla === "cilindros") {
+      const hoy = new Date().toISOString().slice(0, 10);
+
+      const { data: estadoExiste, error: errorBuscarEstado } = await supabase
+        .from("estado_cilindros")
+        .select("*")
+        .eq("cilindro", payload.codigo)
+        .maybeSingle();
+
+      if (errorBuscarEstado) throw errorBuscarEstado;
+
+      if (!estadoExiste) {
+        const { error: errorEstado } = await supabase
+          .from("estado_cilindros")
+          .insert({
+            cilindro: payload.codigo,
+            propietario: payload.propietario,
+            material: payload.producto,
+            estado: "STOCK",
+            fecha_mov: hoy,
+            ubicacion: "ALMACEN"
+          });
+
+        if (errorEstado) throw errorEstado;
+      }
+    }
+
     res.json({
       success: true,
       data
     });
+
   } catch (error) {
     console.error("Error crear maestro:", error);
     res.status(500).json({
