@@ -16,6 +16,7 @@ export default function DespachoDevolucion() {
   const [ubicaciones, setUbicaciones] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
   const [disponibles, setDisponibles] = useState([]);
+  const [tiposEstado, setTiposEstado] = useState([]);
 
   const [info, setInfo] = useState("");
 
@@ -27,9 +28,11 @@ export default function DespachoDevolucion() {
       const prod = await apiGet("/api/cilindros/productos");
       const ubi = await apiGet("/api/cilindros/ubicaciones");
       const usu = await apiGet("/api/cilindros/usuarios");
+      const estado = await apiGet("/api/cilindros/tipos-estado");
 
       setProductos(prod);
       setUbicaciones(ubi);
+      setTiposEstado(estado);
       //setUsuarios(usu);
       const usuariosAutorizados = usu.filter(u => {
         const nombre = String(u.nombre || "").toUpperCase().trim();
@@ -98,6 +101,14 @@ export default function DespachoDevolucion() {
       return item ? item.nombre : codigoArea;
   };
 
+  const nombreEstado = (id) => {
+    const item = tiposEstado.find(
+      t => String(t.id) === String(id)
+    );
+
+    return item ? item.nombre : id;
+  };
+
   const seleccionarCilindro = (codigo) => {
     setCilindro(codigo);
 
@@ -117,7 +128,7 @@ export default function DespachoDevolucion() {
       }
 
       setInfo(
-        `Estado actual: ${seleccionado.estado} | Ubicación: ${obtenerNombreArea(seleccionado.ubicacion)}`
+        `Estado actual: ${nombreEstado(seleccionado.estado)} | Ubicación: ${obtenerNombreArea(seleccionado.ubicacion)}`
       );
     }
   };
@@ -226,7 +237,7 @@ export default function DespachoDevolucion() {
             <option value="">Seleccione</option>
             {productos.map(p => (
               <option key={p.codigo} value={p.codigo}>
-                {p.codigo} - {p.nombre}
+                {p.nombre}
               </option>
             ))}
           </select>
@@ -242,7 +253,7 @@ export default function DespachoDevolucion() {
             <option value="">Seleccione cilindro</option>
             {disponibles.map(d => (
               <option key={d.cilindro} value={d.cilindro}>
-                {d.cilindro} - {d.estado} - {d.ubicacion ? obtenerNombreArea(d.ubicacion) : "Sin ubicación"}
+                {d.cilindro} - {nombreEstado(d.estado)} - {d.ubicacion ? obtenerNombreArea(d.ubicacion) : "Sin ubicación"}
               </option>
             ))}
           </select>

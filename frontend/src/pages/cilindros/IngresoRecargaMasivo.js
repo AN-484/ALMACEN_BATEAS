@@ -15,6 +15,7 @@ export default function IngresoRecargaMasivo() {
   const [productos, setProductos] = useState([]);
   const [propietarios, setPropietarios] = useState([]);
   const [transportistas, setTransportistas] = useState([]);
+  const [tiposEstado, setTiposEstado] = useState([]);
 
   const [filas, setFilas] = useState([]);
 
@@ -36,17 +37,26 @@ export default function IngresoRecargaMasivo() {
       return item ? item.nombre : codigoArea;
   };
 
+  const nombreEstado = (id) => {
+    const item = tiposEstado.find(
+      t => String(t.id) === String(id)
+    );
+
+    return item ? item.nombre : id;
+  };
+
   const cargarCombos = async () => {
     try {
       const prod = await apiGet("/api/cilindros/productos");
       const prop = await apiGet("/api/cilindros/propietarios");
       const ubi = await apiGet("/api/cilindros/ubicaciones");
       const trans = await apiGet("/api/cilindros/transportistas");
-
+      const estado = await apiGet("/api/cilindros/tipos-estado");
       setProductos(prod);
       setPropietarios(prop);
       setUbicaciones(ubi);
       setTransportistas(trans);
+      setTiposEstado(estado);
     } catch (error) {
       console.error(error);
       alert("No se pudieron cargar datos");
@@ -111,7 +121,7 @@ export default function IngresoRecargaMasivo() {
               producto: cil.producto || "",
               fecha_hidrostatica: cil.fecha_hidrostatica || hoy,
               estadoInfo: est
-                ? `Estado: ${est.estado} | Ubicación: ${obtenerNombreArea(est.ubicacion) || ""}`
+                ? `Estado: ${nombreEstado(est.estado)} | Ubicación: ${obtenerNombreArea(est.ubicacion) || ""}`
                 : "Sin estado registrado",
               bloqueado: true
             };
@@ -272,7 +282,7 @@ export default function IngresoRecargaMasivo() {
             <option value="">Seleccione</option>
             {transportistas.map(t => (
               <option key={t.codigo} value={t.codigo}>
-                {t.codigo} - {t.nombre}
+                {t.nombre}
               </option>
             ))}
           </select>
@@ -343,7 +353,7 @@ export default function IngresoRecargaMasivo() {
                     <option value="">Seleccione</option>
                     {propietarios.map(p => (
                       <option key={p.codigo} value={p.codigo}>
-                        {p.codigo} - {p.nombre}
+                        {p.nombre}
                       </option>
                     ))}
                   </select>
@@ -361,7 +371,7 @@ export default function IngresoRecargaMasivo() {
                     <option value="">Seleccione</option>
                     {productos.map(p => (
                       <option key={p.codigo} value={p.codigo}>
-                        {p.codigo} - {p.nombre}
+                        {p.nombre}
                       </option>
                     ))}
                   </select>

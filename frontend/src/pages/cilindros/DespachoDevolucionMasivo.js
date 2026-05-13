@@ -18,6 +18,7 @@ export default function DespachoDevolucionMasivo() {
   const [usuarios, setUsuarios] = useState([]);
   const [disponibles, setDisponibles] = useState([]);
   const [filas, setFilas] = useState([]);
+  const [tiposEstado, setTiposEstado] = useState([]);
 
   const [areaBloqueada, setAreaBloqueada] = useState(false);
   const [areaDevolucionNombre, setAreaDevolucionNombre] = useState("");
@@ -38,9 +39,11 @@ export default function DespachoDevolucionMasivo() {
       const prod = await apiGet("/api/cilindros/productos");
       const ubi = await apiGet("/api/cilindros/ubicaciones");
       const usu = await apiGet("/api/cilindros/usuarios");
+      const estado = await apiGet("/api/cilindros/tipos-estado");
 
       setProductos(prod);
       setUbicaciones(ubi);
+      setTiposEstado(estado);
       //setUsuarios(usu);
       const usuariosAutorizados = usu.filter(u => {
         const nombre = String(u.nombre || "").toUpperCase().trim();
@@ -97,6 +100,14 @@ export default function DespachoDevolucionMasivo() {
   const obtenerNombreArea = (codigoArea) => {
     const item = ubicaciones.find(u => u.codigo === codigoArea);
     return item ? item.nombre : codigoArea;
+  };
+
+  const nombreEstado = (id) => {
+    const item = tiposEstado.find(
+      t => String(t.id) === String(id)
+    );
+
+    return item ? item.nombre : id;
   };
 
   /*const obtenerCodigoAreaPorNombre = (nombreArea) => {
@@ -289,7 +300,7 @@ export default function DespachoDevolucionMasivo() {
             <option value="">Seleccione</option>
             {productos.map(p => (
               <option key={p.codigo} value={p.codigo}>
-                {p.codigo} - {p.nombre}
+                {p.nombre}
               </option>
             ))}
           </select>
@@ -309,24 +320,6 @@ export default function DespachoDevolucionMasivo() {
           />
         </Campo>
 
-        <Campo label="Agregar cilindro">
-          <select
-            value=""
-            onChange={(e) => agregarCilindro(e.target.value)}
-            style={input}
-            disabled={!materialBuscar || disponibles.length === 0}
-          >
-            <option value="">+ Seleccionar cilindro</option>
-            {disponibles
-              .filter(d => !filas.some(f => f.cilindro === d.cilindro))
-              .map(d => (
-                <option key={d.cilindro} value={d.cilindro}>
-                  {d.cilindro} - {d.estado} - {d.ubicacion ? obtenerNombreArea(d.ubicacion) : "Sin ubicación"}
-                </option>
-              ))}
-          </select>
-        </Campo>
-
         <Campo label="Área">
           <select
             value={area}
@@ -340,6 +333,24 @@ export default function DespachoDevolucionMasivo() {
                 {u.nombre}
               </option>
             ))}
+          </select>
+        </Campo>
+
+        <Campo label="Agregar cilindro">
+          <select
+            value=""
+            onChange={(e) => agregarCilindro(e.target.value)}
+            style={input}
+            disabled={!materialBuscar || disponibles.length === 0}
+          >
+            <option value="">+ Seleccionar cilindro</option>
+            {disponibles
+              .filter(d => !filas.some(f => f.cilindro === d.cilindro))
+              .map(d => (
+                <option key={d.cilindro} value={d.cilindro}>
+                  {d.cilindro} - {nombreEstado(d.estado)} - {d.ubicacion ? obtenerNombreArea(d.ubicacion) : "Sin ubicación"}
+                </option>
+              ))}
           </select>
         </Campo>
 
@@ -413,7 +424,7 @@ export default function DespachoDevolucionMasivo() {
               <tr key={f.cilindro}>
                 <td style={td}>{f.cilindro}</td>
                 <td style={td}>{f.material_nombre}</td>
-                <td style={td}>{f.estado}</td>
+                <td style={td}>{nombreEstado(f.estado)}</td>
                 <td style={td}>{f.ubicacion}</td>
                 <td style={td}>
                   <button

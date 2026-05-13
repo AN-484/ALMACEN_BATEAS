@@ -18,6 +18,7 @@ export default function IngresoRecarga() {
   const [productos, setProductos] = useState([]);
   const [propietarios, setPropietarios] = useState([]);
   const [transportistas, setTransportistas] = useState([]);
+  const [tiposEstado, setTiposEstado] = useState([]);
 
   const [estadoInfo, setEstadoInfo] = useState("");
   const [obs, setObs] = useState("");
@@ -32,11 +33,13 @@ export default function IngresoRecarga() {
       const prop = await apiGet("/api/cilindros/propietarios");
       const ubi = await apiGet("/api/cilindros/ubicaciones");
       const trans = await apiGet("/api/cilindros/transportistas");
+      const estado = await apiGet("/api/cilindros/tipos-estado");
 
       setProductos(prod);
       setPropietarios(prop);
       setUbicaciones(ubi);
       setTransportistas(trans);
+      setTiposEstado(estado);
     } catch (error) {
       console.error(error);
       alert("No se pudieron cargar datos");
@@ -55,6 +58,14 @@ export default function IngresoRecarga() {
       );
 
       return item ? item.nombre : codigoArea;
+  };
+
+  const nombreEstado = (id) => {
+    const item = tiposEstado.find(
+      t => String(t.id) === String(id)
+    );
+
+    return item ? item.nombre : id;
   };
 
   const verificarCilindro = async () => {
@@ -78,7 +89,7 @@ export default function IngresoRecarga() {
       }
 
       if (est) {
-        setEstadoInfo(`Estado actual: ${est.estado} | Ubicación: ${obtenerNombreArea(est.ubicacion)}`);
+        setEstadoInfo(`Estado actual: ${nombreEstado(est.estado)} | Ubicación: ${obtenerNombreArea(est.ubicacion)}`);
       } else {
         setEstadoInfo("Cilindro sin estado registrado");
       }
@@ -216,7 +227,7 @@ export default function IngresoRecarga() {
             <option value="">Seleccione</option>
             {propietarios.map(p => (
               <option key={p.codigo} value={p.codigo}>
-                {p.codigo} - {p.nombre}
+                {p.nombre}
               </option>
             ))}
           </select>
@@ -232,7 +243,8 @@ export default function IngresoRecarga() {
             <option value="">Seleccione</option>
             {productos.map(p => (
               <option key={p.codigo} value={p.codigo}>
-                {p.codigo} - {p.nombre}
+                {/* {p.codigo} - {p.nombre} */}
+                {p.nombre}
               </option>
             ))}
           </select>
@@ -278,7 +290,7 @@ export default function IngresoRecarga() {
             <option value="">Seleccione</option>
             {transportistas.map(t => (
               <option key={t.codigo} value={t.codigo}>
-                {t.codigo} - {t.nombre}
+                {t.nombre}
               </option>
             ))}
           </select>
