@@ -12,17 +12,17 @@ router.get("/dashboard", async (req, res) => {
     if (error) throw error;
 
     const total = data.length;
-    const stock = data.filter(x => x.estado === "STOCK").length;
-    const vacio = data.filter(x => x.estado === "VACIO").length;
-    const cliente = data.filter(x => x.estado === "EN CLIENTE").length;
-    const proveedor = data.filter(x => x.estado === "EN PROVEEDOR").length;
+    const stock = data.filter(x => x.estado === "ST").length;  // STOCK
+    const vacio = data.filter(x => x.estado === "VA").length; // VACIO
+    const cliente = data.filter(x => x.estado === "US").length; // EN CLIENTE
+    const proveedor = data.filter(x => x.estado === "RE").length; // EN PROVEEDOR
 
     const bateas = data.filter(
-      x => x.propietario === "PP01" && x.estado !== "EN PROVEEDOR"
+      x => x.propietario === "PP01" && x.estado !== "RE"  // EN PROVEEDOR
     ).length;
 
     const linde = data.filter(
-      x => x.propietario === "PP02" && x.estado !== "EN PROVEEDOR"
+      x => x.propietario === "PP02" && x.estado !== "RE" // EN PROVEEDOR
     ).length;
 
     res.json({
@@ -243,7 +243,8 @@ router.post("/ingreso-recarga", async (req, res) => {
 
     // VALIDACIONES SEGÚN TU APP DE ESCRITORIO
     if (tipo === "INGRESO") {
-      if (estadoActual && estadoActual.estado !== "EN PROVEEDOR") {
+      if (estadoActual && estadoActual.estado !== "RE")  // EN PROVEEDOR 
+      {
         return res.status(400).json({
           success: false,
           message: `No se puede ingresar. Estado actual: ${estadoActual.estado}. Solo se permite si está EN PROVEEDOR.`
@@ -252,7 +253,8 @@ router.post("/ingreso-recarga", async (req, res) => {
     }
 
     if (tipo === "RECARGA") {
-      if (!estadoActual || estadoActual.estado !== "VACIO") {
+      if (!estadoActual || estadoActual.estado !== "VA") // VACIO
+      {
         return res.status(400).json({
           success: false,
           message: `No se puede enviar a recarga. Estado actual: ${
@@ -297,7 +299,7 @@ router.post("/ingreso-recarga", async (req, res) => {
     if (errorMovimiento) throw errorMovimiento;
 
     // Nuevo estado
-    const nuevoEstado = tipo === "INGRESO" ? "STOCK" : "EN PROVEEDOR";
+    const nuevoEstado = tipo === "INGRESO" ? "ST" : "RE"; // STOCK o EN PROVEEDOR
     const nuevaUbicacion = tipo === "INGRESO" ? "1000" : "1999"; // ALMACEN o PROVEEDOR
 
     if (estadoActual) {
@@ -390,7 +392,7 @@ router.get("/disponibles", async (req, res) => {
       });
     }
 
-    const estadoBuscar = tipo === "DESPACHO" ? "STOCK" : "EN CLIENTE";
+    const estadoBuscar = tipo === "DESPACHO" ? "ST" : "US"; // STOCK o EN CLIENTE
 
     const { data, error } = await supabase
       .from("estado_cilindros")
@@ -454,7 +456,8 @@ router.post("/despacho-devolucion", async (req, res) => {
     if (errorEstado) throw errorEstado;
 
     if (tipo === "DESPACHO") {
-      if (!estadoActual || estadoActual.estado !== "STOCK") {
+      if (!estadoActual || estadoActual.estado !== "ST")  // STOCK
+      {  
         return res.status(400).json({
           success: false,
           message: `No se puede despachar. Estado actual: ${
@@ -465,7 +468,7 @@ router.post("/despacho-devolucion", async (req, res) => {
     }
 
     if (tipo === "DEVOLUCION") {
-      if (!estadoActual || estadoActual.estado !== "EN CLIENTE") {
+      if (!estadoActual || estadoActual.estado !== "US") {
         return res.status(400).json({
           success: false,
           message: `No se puede devolver. Estado actual: ${
@@ -503,7 +506,7 @@ router.post("/despacho-devolucion", async (req, res) => {
 
     if (errorMovimiento) throw errorMovimiento;
 
-    const nuevoEstado = tipo === "DESPACHO" ? "EN CLIENTE" : "VACIO";
+    const nuevoEstado = tipo === "DESPACHO" ? "US" : "VA"; // EN CLIENTE o VACIO
     //1//const nuevaUbicacion = tipo === "DESPACHO" ? area : "ALMACEN";
 
     ///// 🔹 obtener nombre del área
@@ -781,7 +784,8 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
 
         // Validaciones iguales a escritorio
         if (tipo === "INGRESO") {
-          if (estadoActual && estadoActual.estado !== "EN PROVEEDOR") {
+          if (estadoActual && estadoActual.estado !== "RE")  // EN PROVEEDOR
+          {
             errores.push(
               `${codigo}: No se puede ingresar. Estado actual: ${estadoActual.estado}. Solo EN PROVEEDOR.`
             );
@@ -790,7 +794,8 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
         }
 
         if (tipo === "RECARGA") {
-          if (!estadoActual || estadoActual.estado !== "VACIO") {
+          if (!estadoActual || estadoActual.estado !== "VA")  // VACIO
+          {
             errores.push(
               `${codigo}: No se puede recargar. Estado actual: ${
                 estadoActual ? estadoActual.estado : "NO REGISTRADO"
@@ -837,7 +842,7 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
         if (errorMovimiento) throw errorMovimiento;
 
         // Actualizar estado
-        const nuevoEstado = tipo === "INGRESO" ? "STOCK" : "EN PROVEEDOR";
+        const nuevoEstado = tipo === "INGRESO" ? "ST" : "RE"; // STOCK o EN PROVEEDOR
         const nuevaUbicacion = tipo === "INGRESO" ? "1000" : "1999"; // ALMACEN o PROVEEDOR
 
         if (estadoActual) {
@@ -906,7 +911,7 @@ router.get("/disponibles-masivo", async (req, res) => {
       });
     }
 
-    const estadoBuscar = tipo === "DESPACHO" ? "STOCK" : "EN CLIENTE";
+    const estadoBuscar = tipo === "DESPACHO" ? "ST" : "US"; // STOCK o EN CLIENTE
 
     const { data, error } = await supabase
       .from("estado_cilindros")
@@ -997,7 +1002,8 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
         }
 
         if (tipo === "DESPACHO") {
-          if (estadoActual.estado !== "STOCK") {
+          if (estadoActual.estado !== "ST")  // STOCK
+          {
             errores.push(
               `${codigo}: no se puede despachar. Estado actual: ${estadoActual.estado}. Solo STOCK.`
             );
@@ -1006,7 +1012,8 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
         }
 
         if (tipo === "DEVOLUCION") {
-          if (estadoActual.estado !== "EN CLIENTE") {
+          if (estadoActual.estado !== "US") // EN CLIENTE
+          {
             errores.push(
               `${codigo}: no se puede devolver. Estado actual: ${estadoActual.estado}. Solo EN CLIENTE.`
             );
@@ -1053,7 +1060,7 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
 
         if (errorMovimiento) throw errorMovimiento;
 
-        const nuevoEstado = tipo === "DESPACHO" ? "EN CLIENTE" : "VACIO";
+        const nuevoEstado = tipo === "DESPACHO" ? "US" : "VA"; // EN CLIENTE o VACIO
         const nuevaUbicacion = tipo === "DESPACHO" ? area : "1000"; // ALMACEN
 
         const { error: errorUpdateEstado } = await supabase
@@ -1096,6 +1103,28 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
       success: false,
       message: "Error en despacho/devolución masiva",
       detail: error.message
+    });
+  }
+});
+
+
+// TIPOS DE ESTADO
+router.get("/tipos-estado", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("tipo_estado")
+      .select("*")
+      .order("id");
+
+    if (error) throw error;
+
+    res.json(data);
+
+  } catch (error) {
+    console.error("Error tipos estado:", error);
+
+    res.status(500).json({
+      error: "Error al obtener tipos de estado"
     });
   }
 });

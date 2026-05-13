@@ -7,6 +7,7 @@ export default function EstadoCilindros() {
   const [productos, setProductos] = useState([]);
   const [propietarios, setPropietarios] = useState([]);
   const [ubicaciones, setUbicaciones] = useState([]);
+  const [tiposEstado, setTiposEstado] = useState([]);
 
   const [producto, setProducto] = useState("");
   const [propietario, setPropietario] = useState("");
@@ -18,11 +19,13 @@ export default function EstadoCilindros() {
       const prop = await apiGet("/api/cilindros/propietarios");
       const cils = await apiGet("/api/cilindros");
       const ubi = await apiGet("/api/cilindros/ubicaciones");
+      const tipos = await apiGet("/api/cilindros/tipos-estado");
 
       setProductos(prod);
       setPropietarios(prop);
       setCilindros(cils);
       setUbicaciones(ubi);
+      setTiposEstado(tipos);
     } catch (error) {
       console.error(error);
       alert("No se pudieron cargar filtros");
@@ -71,6 +74,14 @@ export default function EstadoCilindros() {
 
     const item = ubicaciones.find(u => u.codigo === codigo);
     return item ? item.nombre : codigo;
+  };
+
+  const nombreEstado = (idEstado) => {
+    const item = tiposEstado.find(
+      t => String(t.id) === String(idEstado)
+    );
+
+    return item ? item.nombre : idEstado;
   };
 
   const obtenerFechaHidro = (codigoCilindro) => {
@@ -193,10 +204,10 @@ const calcularAlertaHidro = (fechaHidro) => {
           style={input}
         >
           <option value="">Todos los estados</option>
-          <option value="STOCK">STOCK</option>
-          <option value="VACIO">VACIO</option>
-          <option value="EN CLIENTE">EN CLIENTE</option>
-          <option value="EN PROVEEDOR">EN PROVEEDOR</option>
+          <option value="ST">STOCK</option>
+          <option value="VA">VACIO</option>
+          <option value="US">EN CLIENTE</option>
+          <option value="RE">EN PROVEEDOR</option>
         </select>
 
         <button onClick={cargarDatos} style={btn}>
@@ -248,7 +259,7 @@ const calcularAlertaHidro = (fechaHidro) => {
 
                   <td style={td}>
                     <span style={badge(d.estado)}>
-                      {d.estado}
+                      {nombreEstado(d.estado)}
                     </span>
                   </td>
 
@@ -276,10 +287,10 @@ const calcularAlertaHidro = (fechaHidro) => {
 function badge(estado) {
   let bg = "#718093";
 
-  if (estado === "STOCK") bg = "#44bd32";
-  if (estado === "VACIO") bg = "#fbc531";
-  if (estado === "EN CLIENTE") bg = "#0097e6";
-  if (estado === "EN PROVEEDOR") bg = "#e84118";
+  if (estado === "ST") bg = "#44bd32";
+  if (estado === "VA") bg = "#fbc531";
+  if (estado === "US") bg = "#0097e6";
+  if (estado === "RE") bg = "#e84118";
 
   return {
     background: bg,
