@@ -127,7 +127,7 @@ router.post("/:tabla", puedeModificarDatos, async (req, res) => {
             material: payload.producto,
             estado: "STOCK",
             fecha_mov: hoy,
-            ubicacion: "ALMACEN"
+            ubicacion: "1000" // ALMACEN
           });
 
         if (errorEstado) throw errorEstado;

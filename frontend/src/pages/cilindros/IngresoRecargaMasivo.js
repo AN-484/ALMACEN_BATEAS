@@ -9,6 +9,7 @@ export default function IngresoRecargaMasivo() {
   const [guia, setGuia] = useState("");
   const [nroDocumento, setNroDocumento] = useState("");
   const [transportista, setTransportista] = useState("");
+  const [ubicaciones, setUbicaciones] = useState([]);
 
   const [productos, setProductos] = useState([]);
   const [propietarios, setPropietarios] = useState([]);
@@ -24,14 +25,26 @@ export default function IngresoRecargaMasivo() {
     agregarFila();
   }, []);
 
+  const obtenerNombreArea = (codigoArea) => {
+    if (!codigoArea) return "";
+
+    const item = ubicaciones.find(
+      u => String(u.codigo) === String(codigoArea)
+      );
+
+      return item ? item.nombre : codigoArea;
+  };
+
   const cargarCombos = async () => {
     try {
       const prod = await apiGet("/api/cilindros/productos");
       const prop = await apiGet("/api/cilindros/propietarios");
+      const ubi = await apiGet("/api/cilindros/ubicaciones");
       const trans = await apiGet("/api/cilindros/transportistas");
 
       setProductos(prod);
       setPropietarios(prop);
+      setUbicaciones(ubi);
       setTransportistas(trans);
     } catch (error) {
       console.error(error);
@@ -97,7 +110,7 @@ export default function IngresoRecargaMasivo() {
               producto: cil.producto || "",
               fecha_hidrostatica: cil.fecha_hidrostatica || hoy,
               estadoInfo: est
-                ? `Estado: ${est.estado} | Ubicación: ${est.ubicacion || ""}`
+                ? `Estado: ${est.estado} | Ubicación: ${obtenerNombreArea(est.ubicacion) || ""}`
                 : "Sin estado registrado",
               bloqueado: true
             };

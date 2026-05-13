@@ -289,7 +289,6 @@ router.post("/ingreso-recarga", async (req, res) => {
         nro_guia,
         cilindro,
         producto,
-        cod_transportista: transportista,
         transportista,
         tipo,
         registrado_por
@@ -299,7 +298,7 @@ router.post("/ingreso-recarga", async (req, res) => {
 
     // Nuevo estado
     const nuevoEstado = tipo === "INGRESO" ? "STOCK" : "EN PROVEEDOR";
-    const nuevaUbicacion = tipo === "INGRESO" ? "ALMACEN" : "PROVEEDOR";
+    const nuevaUbicacion = tipo === "INGRESO" ? "1000" : "1999"; // ALMACEN o PROVEEDOR
 
     if (estadoActual) {
       const { error: errorActualizarEstado } = await supabase
@@ -524,7 +523,7 @@ router.post("/despacho-devolucion", async (req, res) => {
 
     // 🔹 ubicación final
     const nuevaUbicacion =
-    tipo === "DESPACHO" ? nombreArea : "ALMACEN";
+    tipo === "DESPACHO" ? area : "1000"; // ALMACEN
 
     //1/////////////////////////////////
 
@@ -830,7 +829,6 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
             nro_guia,
             cilindro: codigo,
             producto,
-            cod_transportista: transportista,
             transportista,
             tipo,
             registrado_por
@@ -840,7 +838,7 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
 
         // Actualizar estado
         const nuevoEstado = tipo === "INGRESO" ? "STOCK" : "EN PROVEEDOR";
-        const nuevaUbicacion = tipo === "INGRESO" ? "ALMACEN" : "PROVEEDOR";
+        const nuevaUbicacion = tipo === "INGRESO" ? "1000" : "1999"; // ALMACEN o PROVEEDOR
 
         if (estadoActual) {
           const { error: errorUpdateEstado } = await supabase
@@ -1015,9 +1013,9 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
             continue;
           }
 
-          if (estadoActual.ubicacion !== area_nombre) {
+          if (estadoActual.ubicacion !== area) {
             errores.push(
-              `${codigo}: pertenece al área ${estadoActual.ubicacion}, pero esta devolución corresponde al área ${area_nombre}.`
+              `${codigo}: pertenece al área ${estadoActual.ubicacion}, pero esta devolución corresponde al área ${area}.`
             );
             continue;
           }
@@ -1056,7 +1054,7 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
         if (errorMovimiento) throw errorMovimiento;
 
         const nuevoEstado = tipo === "DESPACHO" ? "EN CLIENTE" : "VACIO";
-        const nuevaUbicacion = tipo === "DESPACHO" ? area_nombre : "ALMACEN";
+        const nuevaUbicacion = tipo === "DESPACHO" ? area : "1000"; // ALMACEN
 
         const { error: errorUpdateEstado } = await supabase
           .from("estado_cilindros")

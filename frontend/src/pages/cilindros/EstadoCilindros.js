@@ -6,6 +6,7 @@ export default function EstadoCilindros() {
   const [cilindros, setCilindros] = useState([]);
   const [productos, setProductos] = useState([]);
   const [propietarios, setPropietarios] = useState([]);
+  const [ubicaciones, setUbicaciones] = useState([]);
 
   const [producto, setProducto] = useState("");
   const [propietario, setPropietario] = useState("");
@@ -16,10 +17,12 @@ export default function EstadoCilindros() {
       const prod = await apiGet("/api/cilindros/productos");
       const prop = await apiGet("/api/cilindros/propietarios");
       const cils = await apiGet("/api/cilindros");
+      const ubi = await apiGet("/api/cilindros/ubicaciones");
 
       setProductos(prod);
       setPropietarios(prop);
       setCilindros(cils);
+      setUbicaciones(ubi);
     } catch (error) {
       console.error(error);
       alert("No se pudieron cargar filtros");
@@ -57,6 +60,16 @@ export default function EstadoCilindros() {
 
   const nombrePropietario = (codigo) => {
     const item = propietarios.find(p => p.codigo === codigo);
+    return item ? item.nombre : codigo;
+  };
+
+  const nombreUbicacion = (codigo) => {
+    if (!codigo) return "";
+
+    //if (codigo === "ALMACEN") return "Almacen";
+    //if (codigo === "PROVEEDOR") return "Proveedor";
+
+    const item = ubicaciones.find(u => u.codigo === codigo);
     return item ? item.nombre : codigo;
   };
 
@@ -244,7 +257,7 @@ const calcularAlertaHidro = (fechaHidro) => {
                   </td>
 
                   <td style={td}>
-                    {d.ubicacion || ""}
+                    {nombreUbicacion(d.ubicacion)}
                   </td>
                 </tr>
               );

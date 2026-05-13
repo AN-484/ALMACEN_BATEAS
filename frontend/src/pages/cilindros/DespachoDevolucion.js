@@ -86,6 +86,16 @@ export default function DespachoDevolucion() {
     setResponsable("");
     setInfo("");
   };
+  
+  const obtenerNombreArea = (codigoArea) => {
+    if (!codigoArea) return "";
+
+    const item = ubicaciones.find(
+      u => String(u.codigo) === String(codigoArea)
+      );
+
+      return item ? item.nombre : codigoArea;
+  };
 
   const seleccionarCilindro = (codigo) => {
     setCilindro(codigo);
@@ -94,17 +104,19 @@ export default function DespachoDevolucion() {
 
     if (seleccionado) {
       if (tipo === "DEVOLUCION") {
-        const indexArea = ubicaciones.find(
-          u => u.nombre === seleccionado.ubicacion
+        const areaCodigo = seleccionado.ubicacion;
+
+        const areaEncontrada = ubicaciones.find(
+          u => String(u.codigo) === String(areaCodigo)
         );
 
-        if (indexArea) {
-          setArea(indexArea.codigo);
+        if (areaEncontrada) {
+          setArea(areaEncontrada.codigo);
         }
       }
 
       setInfo(
-        `Estado actual: ${seleccionado.estado} | Ubicación: ${seleccionado.ubicacion || ""}`
+        `Estado actual: ${seleccionado.estado} | Ubicación: ${obtenerNombreArea(seleccionado.ubicacion)}`
       );
     }
   };
@@ -227,7 +239,7 @@ export default function DespachoDevolucion() {
             <option value="">Seleccione cilindro</option>
             {disponibles.map(d => (
               <option key={d.cilindro} value={d.cilindro}>
-                {d.cilindro} - {d.estado} - {d.ubicacion}
+                {d.cilindro} - {d.estado} - {d.ubicacion ? obtenerNombreArea(d.ubicacion) : "Sin ubicación"}
               </option>
             ))}
           </select>

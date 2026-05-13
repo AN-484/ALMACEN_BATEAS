@@ -13,6 +13,7 @@ export default function IngresoRecarga() {
   const [guia, setGuia] = useState("");
   const [nroDocumento, setNroDocumento] = useState("");
   const [transportista, setTransportista] = useState("");
+  const [ubicaciones, setUbicaciones] = useState([]);
 
   const [productos, setProductos] = useState([]);
   const [propietarios, setPropietarios] = useState([]);
@@ -28,10 +29,12 @@ export default function IngresoRecarga() {
     try {
       const prod = await apiGet("/api/cilindros/productos");
       const prop = await apiGet("/api/cilindros/propietarios");
+      const ubi = await apiGet("/api/cilindros/ubicaciones");
       const trans = await apiGet("/api/cilindros/transportistas");
 
       setProductos(prod);
       setPropietarios(prop);
+      setUbicaciones(ubi);
       setTransportistas(trans);
     } catch (error) {
       console.error(error);
@@ -42,6 +45,16 @@ export default function IngresoRecarga() {
   useEffect(() => {
     cargarCombos();
   }, []);
+
+  const obtenerNombreArea = (codigoArea) => {
+    if (!codigoArea) return "";
+
+    const item = ubicaciones.find(
+      u => String(u.codigo) === String(codigoArea)
+      );
+
+      return item ? item.nombre : codigoArea;
+  };
 
   const verificarCilindro = async () => {
     if (!cilindro.trim()) return;
@@ -64,7 +77,7 @@ export default function IngresoRecarga() {
       }
 
       if (est) {
-        setEstadoInfo(`Estado actual: ${est.estado} | Ubicación: ${est.ubicacion}`);
+        setEstadoInfo(`Estado actual: ${est.estado} | Ubicación: ${obtenerNombreArea(est.ubicacion)}`);
       } else {
         setEstadoInfo("Cilindro sin estado registrado");
       }

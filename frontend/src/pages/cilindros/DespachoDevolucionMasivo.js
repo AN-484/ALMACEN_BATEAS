@@ -98,10 +98,10 @@ export default function DespachoDevolucionMasivo() {
     return item ? item.nombre : codigoArea;
   };
 
-  const obtenerCodigoAreaPorNombre = (nombreArea) => {
+  /*const obtenerCodigoAreaPorNombre = (nombreArea) => {
     const item = ubicaciones.find(u => u.nombre === nombreArea);
     return item ? item.codigo : "";
-  };
+  };*/
 
   const agregarCilindro = (codigo) => {
     if (!codigo) return;
@@ -128,28 +128,22 @@ export default function DespachoDevolucionMasivo() {
     }
 
     if (tipo === "DEVOLUCION") {
-      const ubicacionActual = seleccionado.ubicacion;
+      const ubicacionActualCodigo = seleccionado.ubicacion;
 
-      if (!ubicacionActual) {
+      if (!ubicacionActualCodigo) {
         alert(`El cilindro ${codigo} no tiene área registrada`);
         return;
       }
+      const ubicacionActualNombre = obtenerNombreArea(ubicacionActualCodigo);
 
       if (!areaDevolucionNombre) {
-        const codigoArea = obtenerCodigoAreaPorNombre(ubicacionActual);
-
-        if (!codigoArea) {
-          alert(`El área '${ubicacionActual}' no existe en la tabla ubicaciones`);
-          return;
-        }
-
-        setArea(codigoArea);
+        setArea(ubicacionActualCodigo);
         setAreaBloqueada(true);
-        setAreaDevolucionNombre(ubicacionActual);
+        setAreaDevolucionNombre(ubicacionActualNombre);
       } else {
-        if (ubicacionActual !== areaDevolucionNombre) {
+        if (ubicacionActualCodigo !== area) {
           alert(
-            `No permitido.\n\nEl cilindro ${codigo} pertenece al área:\n${ubicacionActual}\n\nPero esta devolución corresponde al área:\n${areaDevolucionNombre}`
+            `No permitido.\n\nEl cilindro ${codigo} pertenece al área:\n${ubicacionActualNombre}\n\nPero esta devolución corresponde al área:\n${areaDevolucionNombre}`
           );
           return;
         }
@@ -163,7 +157,7 @@ export default function DespachoDevolucionMasivo() {
         material: seleccionado.material,
         material_nombre: obtenerNombreProducto(seleccionado.material),
         estado: seleccionado.estado,
-        ubicacion: seleccionado.ubicacion || ""
+        ubicacion: obtenerNombreArea(seleccionado.ubicacion) || ""
       }
     ]);
   };
@@ -324,7 +318,7 @@ export default function DespachoDevolucionMasivo() {
               .filter(d => !filas.some(f => f.cilindro === d.cilindro))
               .map(d => (
                 <option key={d.cilindro} value={d.cilindro}>
-                  {d.cilindro} - {d.estado} - {d.ubicacion}
+                  {d.cilindro} - {d.estado} - {d.ubicacion ? obtenerNombreArea(d.ubicacion) : "Sin ubicación"}
                 </option>
               ))}
           </select>
