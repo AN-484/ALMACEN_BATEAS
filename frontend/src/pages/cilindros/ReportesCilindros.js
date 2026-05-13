@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "../../services/api";
+import { verObservacion,
+  obtenerContenidoObservacion } from "../../utils/observaciones";
 
 export default function ReportesCilindros() {
   const [vista, setVista] = useState("ingresos");
@@ -124,7 +126,7 @@ function ReporteIngresos() {
     tipo: nombreMovimiento(d.tipo),
     registrado_por: nombreUsuario(d.registrado_por),
     cambio: d.cambio || "",
-    obs: d.obs || ""
+    obs: d.obs_id || ""
   }));
 
   return (
@@ -214,7 +216,7 @@ function ReporteIngresos() {
           d.cambio || "",
           <button
             disabled={!d.obs || !String(d.obs).trim()}
-            onClick={() => alert(d.obs)}
+            onClick={() => verObservacion(d.obs)}
             style={
               !d.obs || !String(d.obs).trim()
                 ? btnObsDisabled
@@ -312,7 +314,7 @@ function ReporteMovimientos() {
     responsable: d.responsable_area,
     registrado_por: nombreUsuario(d.registrado_por),
     cambio: d.cambio || "",
-    obs: d.obs || ""
+    obs: d.obs_id || ""
   }));
 
   return (
@@ -414,7 +416,7 @@ function ReporteMovimientos() {
           d.cambio,
           <button
             disabled={!d.obs || !String(d.obs).trim()}
-            onClick={() => alert(d.obs)}
+            onClick={() => verObservacion(d.obs)}
             style={
               !d.obs || !String(d.obs).trim()
                 ? btnObsDisabled
@@ -502,7 +504,7 @@ function ReporteKardex() {
     area: nombreArea(d.area),
     registrado_por: nombreUsuario(d.registrado_por),
     cambio: d.cambio || "",
-    obs: d.obs || ""
+    obs: d.obs_id || ""
   }));
 
   return (
@@ -554,7 +556,7 @@ function ReporteKardex() {
           d.cambio,
           <button
             disabled={!d.obs || !String(d.obs).trim()}
-            onClick={() => alert(d.obs)}
+            onClick={() => verObservacion(d.obs)}
             style={
               !d.obs || !String(d.obs).trim()
                 ? btnObsDisabled
@@ -607,17 +609,36 @@ function Tabla({ headers, rows }) {
   );
 }
 
-function exportarCSV(data, filename) {
+async function exportarCSV(data, filename) {
   if (!data || data.length === 0) {
     alert("No hay datos para exportar");
     return;
   }
 
-  const headers = Object.keys(data[0]);
+  // COMPLETAR OBSERVACIONES
+  const dataFinal = await Promise.all(
+    data.map(async (row) => {
+      let contenidoObs = "";
 
-  const rows = data.map(obj =>
+      if (row.obs) {
+        contenidoObs =
+          await obtenerContenidoObservacion(row.obs);
+      }
+
+      return {
+        ...row,
+        obs: contenidoObs
+      };
+    })
+  );
+
+  const headers = Object.keys(dataFinal[0]);
+
+  const rows = dataFinal.map(obj =>
     headers
-      .map(h => `"${String(obj[h] ?? "").replace(/"/g, '""')}"`)
+      .map(h =>
+        `"${String(obj[h] ?? "").replace(/"/g, '""')}"`
+      )
       .join(",")
   );
 
@@ -628,6 +649,7 @@ function exportarCSV(data, filename) {
   });
 
   const url = URL.createObjectURL(blob);
+
   const link = document.createElement("a");
 
   link.href = url;

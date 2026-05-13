@@ -2,6 +2,29 @@ const express = require("express");
 const router = express.Router();
 const supabase = require("../services/supabaseClient");
 
+
+// FUNCION AUXILIAR PARA CREAR OBSERVACIÓN
+async function crearObservacion(obs) {
+  if (!obs || !String(obs).trim()) {
+    return null;
+  }
+
+  const id = `OBS_${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+
+  const { error } = await supabase
+    .from("observaciones")
+    .insert({
+      id,
+      contenido: String(obs).trim()
+    });
+
+  if (error) throw error;
+
+  return id;
+}   
+
 // DASHBOARD CILINDROS
 router.get("/dashboard", async (req, res) => {
   try {
@@ -265,6 +288,9 @@ router.post("/ingreso-recarga", async (req, res) => {
       }
     }
 
+    // Crear observación si existe
+    const obsId = await crearObservacion(obs);
+
     // Crear cilindro si no existe
     if (!cilindroExistente) {
       const { error: errorCrearCilindro } = await supabase
@@ -295,7 +321,7 @@ router.post("/ingreso-recarga", async (req, res) => {
         transportista,
         tipo,
         registrado_por,
-        obs: obs || ""
+        obs_id: obsId
       });
 
     if (errorMovimiento) throw errorMovimiento;
@@ -313,7 +339,7 @@ router.post("/ingreso-recarga", async (req, res) => {
           estado: nuevoEstado,
           fecha_mov: fecha,
           ubicacion: nuevaUbicacion,
-          obs: obs || ""
+          obs_id: obsId
         })
         .eq("cilindro", cilindro);
 
@@ -329,7 +355,7 @@ router.post("/ingreso-recarga", async (req, res) => {
           estado: nuevoEstado,
           fecha_mov: fecha,
           ubicacion: nuevaUbicacion,
-          obs: obs || ""
+          obs_id: obsId
         });
 
       if (errorCrearEstado) throw errorCrearEstado;
@@ -514,6 +540,9 @@ router.post("/despacho-devolucion", async (req, res) => {
 
     const idMovimiento = `${Date.now()}_${cilindro}`;
 
+    // Crear observación si existe
+    const obsId = await crearObservacion(obs);
+
     const { error: errorMovimiento } = await supabase
       .from("movimientos_detalle")
       .insert({
@@ -527,7 +556,7 @@ router.post("/despacho-devolucion", async (req, res) => {
         responsable_area,
         cambio: tipo === "M002" && !sin_cambio ? cambio : null,
         registrado_por,
-        obs: obs || ""
+        obs_id: obsId
       });
 
     if (errorMovimiento) throw errorMovimiento;
@@ -564,7 +593,7 @@ router.post("/despacho-devolucion", async (req, res) => {
         estado: nuevoEstado,
         fecha_mov: fecha,
         ubicacion: nuevaUbicacion,
-        obs: obs || ""
+        obs_id: obsId
       })
       .eq("cilindro", cilindro);
 
@@ -716,7 +745,7 @@ router.get("/reportes/kardex/:cilindro", async (req, res) => {
         material: e.producto,
         area: "",
         registrado_por: e.registrado_por,
-        obs: e.obs || ""
+        obs_id: e.obs_id || null
       })),
       ...movimientos.map(m => ({
         fecha: m.fecha,
@@ -727,7 +756,7 @@ router.get("/reportes/kardex/:cilindro", async (req, res) => {
         material: m.material,
         area: m.area,
         registrado_por: m.registrado_por,
-        obs: m.obs || ""
+        obs_id: m.obs_id || null
       }))
     ];
 
@@ -835,6 +864,9 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
           }
         }
 
+        // Crear observación si existe
+        const obsId = await crearObservacion(obs);
+
         // Crear cilindro si no existe
         if (!cilindroExistente) {
           const { error: errorCrearCilindro } = await supabase
@@ -867,7 +899,7 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
             transportista,
             tipo,
             registrado_por,
-            obs: obs || ""
+            obs_id: obsId
           });
 
         if (errorMovimiento) throw errorMovimiento;
@@ -885,7 +917,7 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
               estado: nuevoEstado,
               fecha_mov: fecha,
               ubicacion: nuevaUbicacion,
-              obs: obs || ""
+              obs_id: obsId
             })
             .eq("cilindro", codigo);
 
@@ -901,7 +933,7 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
               estado: nuevoEstado,
               fecha_mov: fecha,
               ubicacion: nuevaUbicacion,
-              obs: obs || ""
+              obs_id: obsId
             });
 
           if (errorInsertEstado) throw errorInsertEstado;
@@ -1093,6 +1125,8 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
           .toString(36)
           .slice(2, 8)}`;
 
+        const obsId = await crearObservacion(obs);
+
         const { error: errorMovimiento } = await supabase
           .from("movimientos_detalle")
           .insert({
@@ -1106,7 +1140,7 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
             responsable_area,
             cambio: tipo === "M002" && !sin_cambio ? cambioFila : null,
             registrado_por,
-            obs: obs || ""
+            obs_id: obsId
           });
 
         if (errorMovimiento) throw errorMovimiento;
@@ -1122,7 +1156,7 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
             estado: nuevoEstado,
             fecha_mov: fecha,
             ubicacion: nuevaUbicacion,
-            obs: obs || ""
+            obs_id: obsId
           })
           .eq("cilindro", codigo);
 
@@ -1229,6 +1263,31 @@ router.get("/vacios", async (req, res) => {
     console.error("Error cilindros vacíos:", error);
     res.status(500).json({
       error: "Error al listar cilindros vacíos"
+    });
+  }
+});
+
+
+// OBTENER OBSERVACIÓN
+router.get("/observaciones/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { data, error } = await supabase
+      .from("observaciones")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    res.json(data || null);
+
+  } catch (error) {
+    console.error("Error observación:", error);
+
+    res.status(500).json({
+      error: "Error al obtener observación"
     });
   }
 });

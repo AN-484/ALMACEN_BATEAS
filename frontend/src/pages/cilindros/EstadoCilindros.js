@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "../../services/api";
+import { verObservacion } from "../../utils/observaciones";
 
 export default function EstadoCilindros() {
   const [datos, setDatos] = useState([]);
@@ -274,15 +275,15 @@ const calcularAlertaHidro = (fechaHidro) => {
 
                   <td style={td}>
                     <button
-                      disabled={!d.obs || !String(d.obs).trim()}
-                      onClick={() => alert(d.obs)}
+                      disabled={!d.obs_id || !String(d.obs_id).trim()}
+                      onClick={() => verObservacion(d.obs_id)}
                       style={
-                        !d.obs || !String(d.obs).trim()
+                        !d.obs_id || !String(d.obs_id).trim()
                           ? btnObsDisabled
                           : btnObs
                       }
                     >
-                      {!d.obs || !String(d.obs).trim()
+                      {!d.obs_id || !String(d.obs_id).trim()
                         ? "Sin Obs."
                         : "Ver"}
                     </button>
