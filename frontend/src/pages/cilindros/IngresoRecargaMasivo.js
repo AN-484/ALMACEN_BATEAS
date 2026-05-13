@@ -4,7 +4,7 @@ import { apiGet, apiPost } from "../../services/api";
 export default function IngresoRecargaMasivo() {
   const hoy = new Date().toISOString().slice(0, 10);
 
-  const [tipo, setTipo] = useState("INGRESO");
+  const [tipo, setTipo] = useState("M001");
   const [fecha, setFecha] = useState(hoy);
   const [guia, setGuia] = useState("");
   const [nroDocumento, setNroDocumento] = useState("");
@@ -203,7 +203,7 @@ export default function IngresoRecargaMasivo() {
   };
 
   const limpiar = () => {
-    setTipo("INGRESO");
+    setTipo("M001");
     setFecha(hoy);
     setGuia("");
     setNroDocumento("");
@@ -217,15 +217,15 @@ export default function IngresoRecargaMasivo() {
 
       <div style={tipoBox}>
         <button
-          onClick={() => setTipo("INGRESO")}
-          style={tipo === "INGRESO" ? btnIngresoActivo : btnTipo}
+          onClick={() => setTipo("M001")}
+          style={tipo === "M001" ? btnIngresoActivo : btnTipo}
         >
           📥 INGRESO
         </button>
 
         <button
-          onClick={() => setTipo("RECARGA")}
-          style={tipo === "RECARGA" ? btnRecargaActivo : btnTipo}
+          onClick={() => setTipo("M004")}
+          style={tipo === "M004" ? btnRecargaActivo : btnTipo}
         >
           🔄 RECARGA
         </button>

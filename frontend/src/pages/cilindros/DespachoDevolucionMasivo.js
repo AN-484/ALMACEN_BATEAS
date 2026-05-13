@@ -4,7 +4,7 @@ import { apiGet, apiPost } from "../../services/api";
 export default function DespachoDevolucionMasivo() {
   const hoy = new Date().toISOString().slice(0, 10);
 
-  const [tipo, setTipo] = useState("DESPACHO");
+  const [tipo, setTipo] = useState("M002"); // M002 = DESPACHO, M003 = DEVOLUCION 
   const [fecha, setFecha] = useState(hoy);
 
   const [materialBuscar, setMaterialBuscar] = useState("");
@@ -120,14 +120,14 @@ export default function DespachoDevolucionMasivo() {
       return;
     }
 
-    if (tipo === "DESPACHO") {
+    if (tipo === "M002") {
       if (!area) {
         alert("Seleccione el área antes de agregar cilindros al despacho");
         return;
       }
     }
 
-    if (tipo === "DEVOLUCION") {
+    if (tipo === "M003") { // DEVOLUCIÓN
       const ubicacionActualCodigo = seleccionado.ubicacion;
 
       if (!ubicacionActualCodigo) {
@@ -166,7 +166,7 @@ export default function DespachoDevolucionMasivo() {
     const nuevas = filas.filter(f => f.cilindro !== codigo);
     setFilas(nuevas);
 
-    if (tipo === "DEVOLUCION" && nuevas.length === 0) {
+    if (tipo === "M003" && nuevas.length === 0) {
       setArea("");
       liberarAreaDevolucion();
     }
@@ -193,7 +193,7 @@ export default function DespachoDevolucionMasivo() {
       return;
     }
 
-    const areaNombre = tipo === "DESPACHO"
+    const areaNombre = tipo === "M002"
       ? obtenerNombreArea(area)
       : areaDevolucionNombre;
 
@@ -253,15 +253,15 @@ export default function DespachoDevolucionMasivo() {
 
       <div style={tipoBox}>
         <button
-          onClick={() => cambiarTipo("DESPACHO")}
-          style={tipo === "DESPACHO" ? btnDespachoActivo : btnTipo}
+          onClick={() => cambiarTipo("M002")}
+          style={tipo === "M002" ? btnDespachoActivo : btnTipo}
         >
           🚚 DESPACHO
         </button>
 
         <button
-          onClick={() => cambiarTipo("DEVOLUCION")}
-          style={tipo === "DEVOLUCION" ? btnDevolucionActivo : btnTipo}
+          onClick={() => cambiarTipo("M003")}
+          style={tipo === "M003" ? btnDevolucionActivo : btnTipo}
         >
           📥 DEVOLUCIÓN
         </button>
@@ -373,7 +373,7 @@ export default function DespachoDevolucionMasivo() {
         </Campo>
       </div>
 
-      {tipo === "DEVOLUCION" && areaDevolucionNombre && (
+      {tipo === "M003" && areaDevolucionNombre && (
         <div style={infoBox}>
           Área bloqueada para devolución: <b>{areaDevolucionNombre}</b>
         </div>

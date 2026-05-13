@@ -216,7 +216,7 @@ router.post("/ingreso-recarga", async (req, res) => {
       });
     }
 
-    if (!["INGRESO", "RECARGA"].includes(tipo)) {
+    if (!["M001", "M004"].includes(tipo)) {
       return res.status(400).json({
         success: false,
         message: "Tipo de movimiento inválido"
@@ -242,7 +242,7 @@ router.post("/ingreso-recarga", async (req, res) => {
     if (errorEstado) throw errorEstado;
 
     // VALIDACIONES SEGÚN TU APP DE ESCRITORIO
-    if (tipo === "INGRESO") {
+    if (tipo === "M001") {
       if (estadoActual && estadoActual.estado !== "RE")  // EN PROVEEDOR 
       {
         return res.status(400).json({
@@ -252,7 +252,7 @@ router.post("/ingreso-recarga", async (req, res) => {
       }
     }
 
-    if (tipo === "RECARGA") {
+    if (tipo === "M004") {
       if (!estadoActual || estadoActual.estado !== "VA") // VACIO
       {
         return res.status(400).json({
@@ -299,8 +299,8 @@ router.post("/ingreso-recarga", async (req, res) => {
     if (errorMovimiento) throw errorMovimiento;
 
     // Nuevo estado
-    const nuevoEstado = tipo === "INGRESO" ? "ST" : "RE"; // STOCK o EN PROVEEDOR
-    const nuevaUbicacion = tipo === "INGRESO" ? "1000" : "1999"; // ALMACEN o PROVEEDOR
+    const nuevoEstado = tipo === "M001" ? "ST" : "RE"; // STOCK o EN PROVEEDOR
+    const nuevaUbicacion = tipo === "M001" ? "1000" : "1999"; // ALMACEN o PROVEEDOR
 
     if (estadoActual) {
       const { error: errorActualizarEstado } = await supabase
@@ -392,7 +392,7 @@ router.get("/disponibles", async (req, res) => {
       });
     }
 
-    const estadoBuscar = tipo === "DESPACHO" ? "ST" : "US"; // STOCK o EN CLIENTE
+    const estadoBuscar = tipo === "M002" ? "ST" : "US"; // STOCK o EN CLIENTE
 
     const { data, error } = await supabase
       .from("estado_cilindros")
@@ -440,7 +440,7 @@ router.post("/despacho-devolucion", async (req, res) => {
       });
     }
 
-    if (!["DESPACHO", "DEVOLUCION"].includes(tipo)) {
+    if (!["M002", "M003"].includes(tipo)) {
       return res.status(400).json({
         success: false,
         message: "Tipo inválido"
@@ -455,7 +455,7 @@ router.post("/despacho-devolucion", async (req, res) => {
 
     if (errorEstado) throw errorEstado;
 
-    if (tipo === "DESPACHO") {
+    if (tipo === "M002") {
       if (!estadoActual || estadoActual.estado !== "ST")  // STOCK
       {  
         return res.status(400).json({
@@ -467,7 +467,7 @@ router.post("/despacho-devolucion", async (req, res) => {
       }
     }
 
-    if (tipo === "DEVOLUCION") {
+    if (tipo === "M003") {
       if (!estadoActual || estadoActual.estado !== "US") {
         return res.status(400).json({
           success: false,
@@ -506,13 +506,13 @@ router.post("/despacho-devolucion", async (req, res) => {
 
     if (errorMovimiento) throw errorMovimiento;
 
-    const nuevoEstado = tipo === "DESPACHO" ? "US" : "VA"; // EN CLIENTE o VACIO
-    //1//const nuevaUbicacion = tipo === "DESPACHO" ? area : "ALMACEN";
+    const nuevoEstado = tipo === "M002" ? "US" : "VA"; // EN CLIENTE o VACIO
+    //1//const nuevaUbicacion = tipo === "M002" ? area : "ALMACEN";
 
     ///// 🔹 obtener nombre del área
     let nombreArea = "";
 
-    if (tipo === "DESPACHO") {
+    if (tipo === "M002") {
     const { data: areaObj, error: errorArea } = await supabase
         .from("ubicaciones")
         .select("nombre")
@@ -526,7 +526,7 @@ router.post("/despacho-devolucion", async (req, res) => {
 
     // 🔹 ubicación final
     const nuevaUbicacion =
-    tipo === "DESPACHO" ? area : "1000"; // ALMACEN
+    tipo === "M002" ? area : "1000"; // ALMACEN
 
     //1/////////////////////////////////
 
@@ -543,7 +543,7 @@ router.post("/despacho-devolucion", async (req, res) => {
 
     if (errorActualizarEstado) throw errorActualizarEstado;
 
-    if (tipo === "DESPACHO") {
+    if (tipo === "M002") {
       await supabase
         .from("cilindros")
         .update({ nuevo: "NO" })
@@ -742,7 +742,7 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
       });
     }
 
-    if (!["INGRESO", "RECARGA"].includes(tipo)) {
+    if (!["M001", "M004"].includes(tipo)) {
       return res.status(400).json({
         success: false,
         message: "Tipo inválido"
@@ -783,7 +783,7 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
         if (errorEstado) throw errorEstado;
 
         // Validaciones iguales a escritorio
-        if (tipo === "INGRESO") {
+        if (tipo === "M001") {
           if (estadoActual && estadoActual.estado !== "RE")  // EN PROVEEDOR
           {
             errores.push(
@@ -793,7 +793,7 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
           }
         }
 
-        if (tipo === "RECARGA") {
+        if (tipo === "M004") {
           if (!estadoActual || estadoActual.estado !== "VA")  // VACIO
           {
             errores.push(
@@ -842,8 +842,8 @@ router.post("/ingreso-recarga-masivo", async (req, res) => {
         if (errorMovimiento) throw errorMovimiento;
 
         // Actualizar estado
-        const nuevoEstado = tipo === "INGRESO" ? "ST" : "RE"; // STOCK o EN PROVEEDOR
-        const nuevaUbicacion = tipo === "INGRESO" ? "1000" : "1999"; // ALMACEN o PROVEEDOR
+        const nuevoEstado = tipo === "M001" ? "ST" : "RE"; // STOCK o EN PROVEEDOR
+        const nuevaUbicacion = tipo === "M001" ? "1000" : "1999"; // ALMACEN o PROVEEDOR
 
         if (estadoActual) {
           const { error: errorUpdateEstado } = await supabase
@@ -911,7 +911,7 @@ router.get("/disponibles-masivo", async (req, res) => {
       });
     }
 
-    const estadoBuscar = tipo === "DESPACHO" ? "ST" : "US"; // STOCK o EN CLIENTE
+    const estadoBuscar = tipo === "M002" ? "ST" : "US"; // STOCK o EN CLIENTE
 
     const { data, error } = await supabase
       .from("estado_cilindros")
@@ -961,7 +961,7 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
       });
     }
 
-    if (!["DESPACHO", "DEVOLUCION"].includes(tipo)) {
+    if (!["M002", "M003"].includes(tipo)) {
       return res.status(400).json({
         success: false,
         message: "Tipo inválido"
@@ -1001,7 +1001,7 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
           continue;
         }
 
-        if (tipo === "DESPACHO") {
+        if (tipo === "M002") {
           if (estadoActual.estado !== "ST")  // STOCK
           {
             errores.push(
@@ -1011,7 +1011,7 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
           }
         }
 
-        if (tipo === "DEVOLUCION") {
+        if (tipo === "M003") {
           if (estadoActual.estado !== "US") // EN CLIENTE
           {
             errores.push(
@@ -1060,8 +1060,8 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
 
         if (errorMovimiento) throw errorMovimiento;
 
-        const nuevoEstado = tipo === "DESPACHO" ? "US" : "VA"; // EN CLIENTE o VACIO
-        const nuevaUbicacion = tipo === "DESPACHO" ? area : "1000"; // ALMACEN
+        const nuevoEstado = tipo === "M002" ? "US" : "VA"; // EN CLIENTE o VACIO
+        const nuevaUbicacion = tipo === "M002" ? area : "1000"; // ALMACEN
 
         const { error: errorUpdateEstado } = await supabase
           .from("estado_cilindros")
@@ -1076,7 +1076,7 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
 
         if (errorUpdateEstado) throw errorUpdateEstado;
 
-        if (tipo === "DESPACHO") {
+        if (tipo === "M002") {
           await supabase
             .from("cilindros")
             .update({ nuevo: "NO" })
@@ -1125,6 +1125,26 @@ router.get("/tipos-estado", async (req, res) => {
 
     res.status(500).json({
       error: "Error al obtener tipos de estado"
+    });
+  }
+});
+
+// TIPOS DE MOVIMIENTO
+router.get("/tipos-movimiento", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("tipo_movimiento")
+      .select("*")
+      .order("id", { ascending: true });
+
+    if (error) throw error;
+
+    res.json(data);
+
+  } catch (error) {
+    console.error("Error tipos movimiento:", error);
+    res.status(500).json({
+      error: "Error al obtener tipos de movimiento"
     });
   }
 });

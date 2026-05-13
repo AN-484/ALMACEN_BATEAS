@@ -44,6 +44,7 @@ function ReporteIngresos() {
   const [productos, setProductos] = useState([]);
   const [transportistas, setTransportistas] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
+  const [tiposMovimiento, setTiposMovimiento] = useState([]);
 
   const [guia, setGuia] = useState("");
   const [documento, setDocumento] = useState("");
@@ -56,10 +57,11 @@ function ReporteIngresos() {
     const prod = await apiGet("/api/cilindros/productos");
     const trans = await apiGet("/api/cilindros/transportistas");
     const usu = await apiGet("/api/cilindros/usuarios");
-
+    const movs = await apiGet("/api/cilindros/tipos-movimiento");
     setProductos(prod);
     setTransportistas(trans);
     setUsuarios(usu);
+    setTiposMovimiento(movs);
   };
 
   const cargar = async () => {
@@ -104,6 +106,14 @@ function ReporteIngresos() {
     return item ? item.sub_nombre: codigo;
   };
 
+  const nombreMovimiento = (id) => {
+    const item = tiposMovimiento.find(
+      t => String(t.id) === String(id)
+    );
+
+    return item ? item.nombre : id;
+  };
+
   const rowsExport = datos.map(d => ({
     fecha: d.fecha,
     guia: d.nro_guia,
@@ -111,7 +121,7 @@ function ReporteIngresos() {
     cilindro: d.cilindro,
     producto: nombreProducto(d.producto),
     transportista: nombreTransportista(d.transportista),
-    tipo: d.tipo,
+    tipo: nombreMovimiento(d.tipo),
     registrado_por: nombreUsuario(d.registrado_por)
   }));
 
@@ -161,8 +171,8 @@ function ReporteIngresos() {
           style={input}
         >
           <option value="">Todos</option>
-          <option value="INGRESO">INGRESO</option>
-          <option value="RECARGA">RECARGA</option>
+          <option value="M001">INGRESO</option>
+          <option value="M004">RECARGA</option>
         </select>
 
         <button onClick={cargar} style={btnBuscar}>
@@ -209,6 +219,7 @@ function ReporteMovimientos() {
   const [productos, setProductos] = useState([]);
   const [ubicaciones, setUbicaciones] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
+  const [tiposMovimiento, setTiposMovimiento] = useState([]);
 
   const [cilindro, setCilindro] = useState("");
   const [material, setMaterial] = useState("");
@@ -221,10 +232,11 @@ function ReporteMovimientos() {
     const prod = await apiGet("/api/cilindros/productos");
     const ubi = await apiGet("/api/cilindros/ubicaciones");
     const usu = await apiGet("/api/cilindros/usuarios");
-
+    const movs = await apiGet("/api/cilindros/tipos-movimiento");
     setProductos(prod);
     setUbicaciones(ubi);
     setUsuarios(usu);
+    setTiposMovimiento(movs);
   };
 
   const cargar = async () => {
@@ -264,12 +276,20 @@ function ReporteMovimientos() {
     return item ? item.sub_nombre : codigo;
   };
 
+  const nombreMovimiento = (id) => {
+    const item = tiposMovimiento.find(
+      t => String(t.id) === String(id)
+    );
+
+    return item ? item.nombre : id;
+  };
+
   const rowsExport = datos.map(d => ({
     fecha: d.fecha,
     cilindro: d.cilindro,
     material: nombreProducto(d.material),
     area: nombreArea(d.area),
-    tipo: d.tipo,
+    tipo: nombreMovimiento(d.tipo),
     autorizado_por: nombreUsuario(d.encargado_almacen),
     responsable: d.responsable_area,
     registrado_por: nombreUsuario(d.registrado_por)
@@ -333,8 +353,8 @@ function ReporteMovimientos() {
           style={input}
         >
           <option value="">Todos</option>
-          <option value="DESPACHO">DESPACHO</option>
-          <option value="DEVOLUCION">DEVOLUCIÓN</option>
+          <option value="M002">DESPACHO</option>
+          <option value="M003">DEVOLUCIÓN</option>
         </select>
 
         <button onClick={cargar} style={btnBuscar}>
@@ -382,15 +402,18 @@ function ReporteKardex() {
   const [productos, setProductos] = useState([]);
   const [ubicaciones, setUbicaciones] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
+  const [tiposMovimiento, setTiposMovimiento] = useState([]);
 
   const cargarCombos = async () => {
     const prod = await apiGet("/api/cilindros/productos");
     const ubi = await apiGet("/api/cilindros/ubicaciones");
     const usu = await apiGet("/api/cilindros/usuarios");
+    const movs = await apiGet("/api/cilindros/tipos-movimiento");
 
     setProductos(prod);
     setUbicaciones(ubi);
     setUsuarios(usu);
+    setTiposMovimiento(movs);
   };
 
   useEffect(() => {
@@ -425,10 +448,18 @@ function ReporteKardex() {
     return item ? item.sub_nombre : codigo;
   };
 
+  const nombreMovimiento = (id) => {
+    const item = tiposMovimiento.find(
+      t => String(t.id) === String(id)
+    );
+
+    return item ? item.nombre : id;
+  };
+
   const rowsExport = datos.map(d => ({
     fecha: d.fecha,
     cilindro: d.cilindro,
-    tipo: d.tipo,
+    tipo: nombreMovimiento(d.tipo),
     origen: d.origen,
     detalle: d.detalle,
     material: nombreProducto(d.material),

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { apiGet, apiPost } from "../../services/api";
 
 export default function IngresoRecarga() {
-  const [tipo, setTipo] = useState("INGRESO");
+  const [tipo, setTipo] = useState("M001");
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
 
   const [cilindro, setCilindro] = useState("");
@@ -149,7 +149,7 @@ export default function IngresoRecarga() {
   };
 
   const limpiar = () => {
-    setTipo("INGRESO");
+    setTipo("M001");
     setFecha(new Date().toISOString().slice(0, 10));
     setCilindro("");
     setPropietario("");
@@ -168,15 +168,15 @@ export default function IngresoRecarga() {
 
       <div style={tipoBox}>
         <button
-          onClick={() => setTipo("INGRESO")}
-          style={tipo === "INGRESO" ? btnIngresoActivo : btnTipo}
+          onClick={() => setTipo("M001")}
+          style={tipo === "M001" ? btnIngresoActivo : btnTipo}
         >
           📥 INGRESO
         </button>
 
         <button
-          onClick={() => setTipo("RECARGA")}
-          style={tipo === "RECARGA" ? btnRecargaActivo : btnTipo}
+          onClick={() => setTipo("M004")}
+          style={tipo === "M004" ? btnRecargaActivo : btnTipo}
         >
           🔄 RECARGA
         </button>

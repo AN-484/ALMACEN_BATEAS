@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { apiGet, apiPost } from "../../services/api";
 
 export default function DespachoDevolucion() {
-  const [tipo, setTipo] = useState("DESPACHO");
+  const [tipo, setTipo] = useState("M002"); // M002 = DESPACHO, M003 = DEVOLUCION 
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
 
   const [material, setMaterial] = useState("");
@@ -103,7 +103,7 @@ export default function DespachoDevolucion() {
     const seleccionado = disponibles.find(d => d.cilindro === codigo);
 
     if (seleccionado) {
-      if (tipo === "DEVOLUCION") {
+      if (tipo === "M003") { // DEVOLUCION
         const areaCodigo = seleccionado.ubicacion;
 
         const areaEncontrada = ubicaciones.find(
@@ -190,15 +190,15 @@ export default function DespachoDevolucion() {
 
       <div style={tipoBox}>
         <button
-          onClick={() => cambiarTipo("DESPACHO")}
-          style={tipo === "DESPACHO" ? btnDespachoActivo : btnTipo}
+          onClick={() => cambiarTipo("M002")}
+          style={tipo === "M002" ? btnDespachoActivo : btnTipo}
         >
           🚚 DESPACHO
         </button>
 
         <button
-          onClick={() => cambiarTipo("DEVOLUCION")}
-          style={tipo === "DEVOLUCION" ? btnDevolucionActivo : btnTipo}
+          onClick={() => cambiarTipo("M003")}
+          style={tipo === "M003" ? btnDevolucionActivo : btnTipo}
         >
           📥 DEVOLUCIÓN
         </button>
@@ -250,7 +250,7 @@ export default function DespachoDevolucion() {
             value={area}
             onChange={(e) => setArea(e.target.value)}
             style={input}
-            disabled={tipo === "DEVOLUCION"}
+            disabled={tipo === "M003"} // En DEVOLUCIÓN el área se autocompleta y no se puede cambiar
           >
             <option value="">Seleccione</option>
             {ubicaciones.map(u => (
