@@ -42,7 +42,7 @@ export default function Login() {
           type="text"
           placeholder="Ingrese DNI"
           value={dni}
-          onChange={(e) => setDni(e.target.value)}
+          onChange={(e) => setDni(e.target.value.toUpperCase())}
           onKeyDown={handleKey}
           style={input}
         />
@@ -159,7 +159,7 @@ export default function Login() {
           placeholder="Ingrese su DNI"
           value={dni}
           maxLength={8}
-          onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
+          onChange={(e) => setDni(e.target.value.toUpperCase().replace(/\D/g, ""))}
           onKeyDown={handleKey}
           style={input}
         />

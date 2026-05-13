@@ -247,7 +247,7 @@ function MaestroTabla({ tabla, config }) {
       return (
         <select
           value={form[campo.key] || ""}
-          onChange={(e) => cambiar(campo.key, e.target.value)}
+          onChange={(e) => cambiar(campo.key, e.target.value.toUpperCase())}
           style={input}
         >
           <option value="">Seleccione propietario</option>
@@ -264,7 +264,7 @@ function MaestroTabla({ tabla, config }) {
       return (
         <select
           value={form[campo.key] || ""}
-          onChange={(e) => cambiar(campo.key, e.target.value)}
+          onChange={(e) => cambiar(campo.key, e.target.value.toUpperCase())}
           style={input}
         >
           <option value="">Seleccione producto</option>
@@ -281,7 +281,7 @@ function MaestroTabla({ tabla, config }) {
       return (
         <select
           value={form[campo.key] || "SI"}
-          onChange={(e) => cambiar(campo.key, e.target.value)}
+          onChange={(e) => cambiar(campo.key, e.target.value.toUpperCase())}
           style={input}
         >
           <option value="SI">SI</option>
@@ -295,7 +295,7 @@ function MaestroTabla({ tabla, config }) {
         type={campo.type || "text"}
         value={form[campo.key] || ""}
         disabled={editando && campo.key === "codigo"}
-        onChange={(e) => cambiar(campo.key, e.target.value)}
+        onChange={(e) => cambiar(campo.key, e.target.value.toUpperCase())}
         style={input}
       />
     );

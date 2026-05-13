@@ -174,7 +174,7 @@ const calcularAlertaHidro = (fechaHidro) => {
       <div style={filtros}>
         <select
           value={producto}
-          onChange={(e) => setProducto(e.target.value)}
+          onChange={(e) => setProducto(e.target.value.toUpperCase())}
           style={input}
         >
           <option value="">Todos los productos</option>
@@ -187,7 +187,7 @@ const calcularAlertaHidro = (fechaHidro) => {
 
         <select
           value={propietario}
-          onChange={(e) => setPropietario(e.target.value)}
+          onChange={(e) => setPropietario(e.target.value.toUpperCase())}
           style={input}
         >
           <option value="">Todos los propietarios</option>
@@ -200,7 +200,7 @@ const calcularAlertaHidro = (fechaHidro) => {
 
         <select
           value={estado}
-          onChange={(e) => setEstado(e.target.value)}
+          onChange={(e) => setEstado(e.target.value.toUpperCase())}
           style={input}
         >
           <option value="">Todos los estados</option>

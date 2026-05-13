@@ -223,7 +223,7 @@ export default function DespachoDevolucion() {
           <input
             type="date"
             value={fecha}
-            onChange={(e) => setFecha(e.target.value)}
+            onChange={(e) => setFecha(e.target.value.toUpperCase())}
             style={input}
           />
         </Campo>
@@ -231,7 +231,7 @@ export default function DespachoDevolucion() {
         <Campo label="Material">
           <select
             value={material}
-            onChange={(e) => setMaterial(e.target.value)}
+            onChange={(e) => setMaterial(e.target.value.toUpperCase())}
             style={input}
           >
             <option value="">Seleccione</option>
@@ -246,7 +246,7 @@ export default function DespachoDevolucion() {
         <Campo label="Cilindro disponible">
           <select
             value={cilindro}
-            onChange={(e) => seleccionarCilindro(e.target.value)}
+            onChange={(e) => seleccionarCilindro(e.target.value.toUpperCase())}
             style={input}
             disabled={disponibles.length === 0}
           >
@@ -262,7 +262,7 @@ export default function DespachoDevolucion() {
         <Campo label="Área">
           <select
             value={area}
-            onChange={(e) => setArea(e.target.value)}
+            onChange={(e) => setArea(e.target.value.toUpperCase())}
             style={input}
             disabled={tipo === "M003"} // En DEVOLUCIÓN el área se autocompleta y no se puede cambiar
           >
@@ -278,7 +278,7 @@ export default function DespachoDevolucion() {
         <Campo label="Autorizado por">
           <select
             value={encargado}
-            onChange={(e) => setEncargado(e.target.value)}
+            onChange={(e) => setEncargado(e.target.value.toUpperCase())}
             style={input}
           >
             <option value="">Seleccione</option>
@@ -294,7 +294,7 @@ export default function DespachoDevolucion() {
           <input
             type="text"
             value={responsable}
-            onChange={(e) => setResponsable(e.target.value)}
+            onChange={(e) => setResponsable(e.target.value.toUpperCase().toUpperCase())}
             placeholder="Nombre del responsable"
             style={input}
           />
@@ -312,7 +312,7 @@ export default function DespachoDevolucion() {
         <Campo label="Observación">
           <textarea
             value={obs}
-            onChange={(e) => setObs(e.target.value)}
+            onChange={(e) => setObs(e.target.value.toUpperCase().toUpperCase())}
             placeholder="Escriba alguna ocurrencia..."
             style={textarea}
           />

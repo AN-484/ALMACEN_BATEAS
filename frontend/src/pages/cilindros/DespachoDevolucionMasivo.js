@@ -286,7 +286,7 @@ export default function DespachoDevolucionMasivo() {
           <input
             type="date"
             value={fecha}
-            onChange={(e) => setFecha(e.target.value)}
+            onChange={(e) => setFecha(e.target.value.toUpperCase())}
             style={input}
           />
         </Campo>
@@ -294,7 +294,7 @@ export default function DespachoDevolucionMasivo() {
         <Campo label="Material a buscar">
           <select
             value={materialBuscar}
-            onChange={(e) => setMaterialBuscar(e.target.value)}
+            onChange={(e) => setMaterialBuscar(e.target.value.toUpperCase())}
             style={input}
           >
             <option value="">Seleccione</option>
@@ -323,7 +323,7 @@ export default function DespachoDevolucionMasivo() {
         <Campo label="Área">
           <select
             value={area}
-            onChange={(e) => setArea(e.target.value)}
+            onChange={(e) => setArea(e.target.value.toUpperCase())}
             style={input}
             disabled={areaBloqueada}
           >
@@ -339,7 +339,7 @@ export default function DespachoDevolucionMasivo() {
         <Campo label="Agregar cilindro">
           <select
             value=""
-            onChange={(e) => agregarCilindro(e.target.value)}
+            onChange={(e) => agregarCilindro(e.target.value.toUpperCase())}
             style={input}
             disabled={!materialBuscar || disponibles.length === 0}
           >
@@ -357,7 +357,7 @@ export default function DespachoDevolucionMasivo() {
         <Campo label="Autorizado por">
           <select
             value={encargado}
-            onChange={(e) => setEncargado(e.target.value)}
+            onChange={(e) => setEncargado(e.target.value.toUpperCase())}
             style={input}
           >
             <option value="">Seleccione</option>
@@ -372,7 +372,7 @@ export default function DespachoDevolucionMasivo() {
         <Campo label="Usuario que recoge/devuelve">
           <input
             value={responsable}
-            onChange={(e) => setResponsable(e.target.value)}
+            onChange={(e) => setResponsable(e.target.value.toUpperCase().toUpperCase())}
             placeholder="Nombre del responsable"
             style={input}
           />
@@ -389,7 +389,7 @@ export default function DespachoDevolucionMasivo() {
         <Campo label="Observación / Ocurrencia grupal">
           <textarea
             value={obs}
-            onChange={(e) => setObs(e.target.value)}
+            onChange={(e) => setObs(e.target.value.toUpperCase().toUpperCase())}
             placeholder="Escriba observaciones para este lote..."
             style={textarea}
           />

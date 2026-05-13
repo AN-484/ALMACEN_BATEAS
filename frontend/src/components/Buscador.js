@@ -25,7 +25,7 @@ export default function Buscador() {
         type="text"
         placeholder="Código SAP"
         value={codigo}
-        onChange={(e) => setCodigo(e.target.value)}
+        onChange={(e) => setCodigo(e.target.value.toUpperCase())}
       />
 
       <button onClick={() => buscarProducto(codigo)}>

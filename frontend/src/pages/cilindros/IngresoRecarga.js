@@ -201,7 +201,7 @@ export default function IngresoRecarga() {
           <input
             type="date"
             value={fecha}
-            onChange={(e) => setFecha(e.target.value)}
+            onChange={(e) => setFecha(e.target.value.toUpperCase())}
             style={input}
           />
         </Campo>
@@ -210,7 +210,7 @@ export default function IngresoRecarga() {
           <input
             type="text"
             value={cilindro}
-            onChange={(e) => setCilindro(e.target.value)}
+            onChange={(e) => setCilindro(e.target.value.toUpperCase())}
             onBlur={verificarCilindro}
             placeholder="Ejemplo: C001"
             style={input}
@@ -220,7 +220,7 @@ export default function IngresoRecarga() {
         <Campo label="Propietario">
           <select
             value={propietario}
-            onChange={(e) => setPropietario(e.target.value)}
+            onChange={(e) => setPropietario(e.target.value.toUpperCase())}
             disabled={bloquearDatosCilindro}
             style={input}
           >
@@ -236,7 +236,7 @@ export default function IngresoRecarga() {
         <Campo label="Producto">
           <select
             value={producto}
-            onChange={(e) => setProducto(e.target.value)}
+            onChange={(e) => setProducto(e.target.value.toUpperCase())}
             disabled={bloquearDatosCilindro}
             style={input}
           >
@@ -254,7 +254,7 @@ export default function IngresoRecarga() {
           <input
             type="date"
             value={fechaHidro}
-            onChange={(e) => setFechaHidro(e.target.value)}
+            onChange={(e) => setFechaHidro(e.target.value.toUpperCase())}
             disabled={bloquearDatosCilindro}
             style={input}
           />
@@ -264,7 +264,7 @@ export default function IngresoRecarga() {
           <input
             type="text"
             value={guia}
-            onChange={(e) => setGuia(e.target.value)}
+            onChange={(e) => setGuia(e.target.value.toUpperCase())}
             placeholder="Número de guía"
             style={input}
           />
@@ -275,7 +275,7 @@ export default function IngresoRecarga() {
             type="text"
             value={nroDocumento}
             maxLength={10}
-            onChange={(e) => setNroDocumento(e.target.value)}
+            onChange={(e) => setNroDocumento(e.target.value.toUpperCase())}
             placeholder="Número documento"
             style={input}
           />
@@ -284,7 +284,7 @@ export default function IngresoRecarga() {
         <Campo label="Transportista">
           <select
             value={transportista}
-            onChange={(e) => setTransportista(e.target.value)}
+            onChange={(e) => setTransportista(e.target.value.toUpperCase())}
             style={input}
           >
             <option value="">Seleccione</option>
@@ -308,7 +308,7 @@ export default function IngresoRecarga() {
         <Campo label="Observación">
           <textarea
             value={obs}
-            onChange={(e) => setObs(e.target.value)}
+            onChange={(e) => setObs(e.target.value.toUpperCase())}
             placeholder="Escriba alguna ocurrencia..."
             style={textarea}
           />

@@ -134,41 +134,41 @@ function ReporteIngresos() {
         <input
           type="date"
           value={fechaInicio}
-          onChange={(e) => setFechaInicio(e.target.value)}
+          onChange={(e) => setFechaInicio(e.target.value.toUpperCase())}
           style={input}
         />
 
         <input
           type="date"
           value={fechaFin}
-          onChange={(e) => setFechaFin(e.target.value)}
+          onChange={(e) => setFechaFin(e.target.value.toUpperCase())}
           style={input}
         />
 
         <input
           placeholder="Guía"
           value={guia}
-          onChange={(e) => setGuia(e.target.value)}
+          onChange={(e) => setGuia(e.target.value.toUpperCase())}
           style={input}
         />
 
         <input
           placeholder="N° Documento"
           value={documento}
-          onChange={(e) => setDocumento(e.target.value)}
+          onChange={(e) => setDocumento(e.target.value.toUpperCase())}
           style={input}
         />
 
         <input
           placeholder="Cilindro"
           value={cilindro}
-          onChange={(e) => setCilindro(e.target.value)}
+          onChange={(e) => setCilindro(e.target.value.toUpperCase())}
           style={input}
         />
 
         <select
           value={tipo}
-          onChange={(e) => setTipo(e.target.value)}
+          onChange={(e) => setTipo(e.target.value.toUpperCase())}
           style={input}
         >
           <option value="">Todos</option>
@@ -319,27 +319,27 @@ function ReporteMovimientos() {
         <input
           type="date"
           value={fechaInicio}
-          onChange={(e) => setFechaInicio(e.target.value)}
+          onChange={(e) => setFechaInicio(e.target.value.toUpperCase())}
           style={input}
         />
 
         <input
           type="date"
           value={fechaFin}
-          onChange={(e) => setFechaFin(e.target.value)}
+          onChange={(e) => setFechaFin(e.target.value.toUpperCase())}
           style={input}
         />
 
         <input
           placeholder="Cilindro"
           value={cilindro}
-          onChange={(e) => setCilindro(e.target.value)}
+          onChange={(e) => setCilindro(e.target.value.toUpperCase())}
           style={input}
         />
 
         <select
           value={material}
-          onChange={(e) => setMaterial(e.target.value)}
+          onChange={(e) => setMaterial(e.target.value.toUpperCase())}
           style={input}
         >
           <option value="">Todos los materiales</option>
@@ -352,7 +352,7 @@ function ReporteMovimientos() {
 
         <select
           value={area}
-          onChange={(e) => setArea(e.target.value)}
+          onChange={(e) => setArea(e.target.value.toUpperCase())}
           style={input}
         >
           <option value="">Todas las áreas</option>
@@ -365,7 +365,7 @@ function ReporteMovimientos() {
 
         <select
           value={tipo}
-          onChange={(e) => setTipo(e.target.value)}
+          onChange={(e) => setTipo(e.target.value.toUpperCase())}
           style={input}
         >
           <option value="">Todos</option>
@@ -506,7 +506,7 @@ function ReporteKardex() {
         <input
           placeholder="Código de cilindro"
           value={cilindro}
-          onChange={(e) => setCilindro(e.target.value)}
+          onChange={(e) => setCilindro(e.target.value.toUpperCase())}
           style={input}
         />
 

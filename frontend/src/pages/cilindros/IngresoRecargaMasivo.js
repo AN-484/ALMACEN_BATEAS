@@ -249,7 +249,7 @@ export default function IngresoRecargaMasivo() {
           <input
             type="date"
             value={fecha}
-            onChange={(e) => setFecha(e.target.value)}
+            onChange={(e) => setFecha(e.target.value.toUpperCase())}
             style={input}
           />
         </Campo>
@@ -257,7 +257,7 @@ export default function IngresoRecargaMasivo() {
         <Campo label="Guía">
           <input
             value={guia}
-            onChange={(e) => setGuia(e.target.value)}
+            onChange={(e) => setGuia(e.target.value.toUpperCase())}
             placeholder="Número de guía"
             style={input}
           />
@@ -267,7 +267,7 @@ export default function IngresoRecargaMasivo() {
           <input
             value={nroDocumento}
             maxLength={10}
-            onChange={(e) => setNroDocumento(e.target.value)}
+            onChange={(e) => setNroDocumento(e.target.value.toUpperCase())}
             placeholder="Número documento"
             style={input}
           />
@@ -276,7 +276,7 @@ export default function IngresoRecargaMasivo() {
         <Campo label="Transportista">
           <select
             value={transportista}
-            onChange={(e) => setTransportista(e.target.value)}
+            onChange={(e) => setTransportista(e.target.value.toUpperCase())}
             style={input}
           >
             <option value="">Seleccione</option>
@@ -299,7 +299,7 @@ export default function IngresoRecargaMasivo() {
         <Campo label="Observación / Ocurrencia grupal">
           <textarea
             value={obs}
-            onChange={(e) => setObs(e.target.value)}
+            onChange={(e) => setObs(e.target.value.toUpperCase())}
             placeholder="Escriba observaciones para este lote..."
             style={textarea}
           />
@@ -333,7 +333,7 @@ export default function IngresoRecargaMasivo() {
                   <input
                     value={fila.codigo}
                     onChange={(e) =>
-                      actualizarFila(fila.id, "codigo", e.target.value)
+                      actualizarFila(fila.id, "codigo", e.target.value.toUpperCase())
                     }
                     onBlur={() => verificarCilindro(fila.id)}
                     placeholder="C001"
@@ -346,7 +346,7 @@ export default function IngresoRecargaMasivo() {
                     value={fila.propietario}
                     disabled={fila.bloqueado}
                     onChange={(e) =>
-                      actualizarFila(fila.id, "propietario", e.target.value)
+                      actualizarFila(fila.id, "propietario", e.target.value.toUpperCase())
                     }
                     style={inputTabla}
                   >
@@ -364,7 +364,7 @@ export default function IngresoRecargaMasivo() {
                     value={fila.producto}
                     disabled={fila.bloqueado}
                     onChange={(e) =>
-                      actualizarFila(fila.id, "producto", e.target.value)
+                      actualizarFila(fila.id, "producto", e.target.value.toUpperCase())
                     }
                     style={inputTabla}
                   >
@@ -383,7 +383,7 @@ export default function IngresoRecargaMasivo() {
                     value={fila.fecha_hidrostatica}
                     disabled={fila.bloqueado}
                     onChange={(e) =>
-                      actualizarFila(fila.id, "fecha_hidrostatica", e.target.value)
+                      actualizarFila(fila.id, "fecha_hidrostatica", e.target.value.toUpperCase())
                     }
                     style={inputTabla}
                   />
