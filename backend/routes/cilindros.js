@@ -425,6 +425,7 @@ router.post("/despacho-devolucion", async (req, res) => {
       tipo,
       encargado_almacen,
       responsable_area,
+      cambio,
       registrado_por,
       obs
     } = req.body;
@@ -483,6 +484,13 @@ router.post("/despacho-devolucion", async (req, res) => {
       }
     }
 
+    if (tipo === "M002" && !cambio) {
+      return res.status(400).json({
+        success: false,
+        message: "Debe seleccionar cilindro de cambio para el despacho"
+      });
+    }
+
     const { data: cilindroObj, error: errorCilindro } = await supabase
       .from("cilindros")
       .select("*")
@@ -506,6 +514,7 @@ router.post("/despacho-devolucion", async (req, res) => {
         tipo,
         encargado_almacen,
         responsable_area,
+        cambio: tipo === "M002" ? cambio : null,
         registrado_por,
         obs: obs || ""
       });
@@ -989,6 +998,7 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
       try {
         const codigo = String(item.cilindro || "").trim();
         const materialFila = item.material;
+        const cambioFila = item.cambio || null;
 
         if (!codigo || !materialFila) {
           errores.push(`${codigo || "SIN CÓDIGO"}: falta cilindro o material`);
@@ -1042,6 +1052,12 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
           }
         }
 
+        
+        if (tipo === "M002" && !cambioFila) {
+          errores.push(`${codigo}: debe seleccionar cilindro de cambio`);
+          continue;
+        }
+
         const { data: cilindroObj, error: errorCilindro } = await supabase
           .from("cilindros")
           .select("*")
@@ -1069,6 +1085,7 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
             tipo,
             encargado_almacen,
             responsable_area,
+            cambio: tipo === "M002" ? cambioFila : null,
             registrado_por,
             obs: obs || ""
           });
@@ -1161,6 +1178,38 @@ router.get("/tipos-movimiento", async (req, res) => {
     console.error("Error tipos movimiento:", error);
     res.status(500).json({
       error: "Error al obtener tipos de movimiento"
+    });
+  }
+});
+
+
+// CILINDROS VACÍOS PARA CAMBIO
+router.get("/vacios", async (req, res) => {
+  try {
+    const { material } = req.query;
+
+    if (!material) {
+      return res.status(400).json({
+        success: false,
+        message: "Falta material"
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("estado_cilindros")
+      .select("*")
+      .eq("material", material)
+      .eq("estado", "VA")
+      .order("cilindro", { ascending: true });
+
+    if (error) throw error;
+
+    res.json(data);
+
+  } catch (error) {
+    console.error("Error cilindros vacíos:", error);
+    res.status(500).json({
+      error: "Error al listar cilindros vacíos"
     });
   }
 });

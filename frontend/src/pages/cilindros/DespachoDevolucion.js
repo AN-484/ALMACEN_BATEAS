@@ -12,6 +12,9 @@ export default function DespachoDevolucion() {
   const [responsable, setResponsable] = useState("");
   const [obs, setObs] = useState("");
 
+  const [cambio, setCambio] = useState("");
+  const [cilindrosVacios, setCilindrosVacios] = useState([]);
+
   const [productos, setProductos] = useState([]);
   const [ubicaciones, setUbicaciones] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
@@ -47,6 +50,25 @@ export default function DespachoDevolucion() {
     } catch (error) {
       console.error(error);
       alert("No se pudieron cargar datos");
+    }
+  };
+
+  const cargarCilindrosVacios = async (materialSeleccionado) => {
+    try {
+      setCambio("");
+      setCilindrosVacios([]);
+
+      if (!materialSeleccionado) return;
+
+      const data = await apiGet(
+        `/api/cilindros/vacios?material=${materialSeleccionado}`
+      );
+
+      setCilindrosVacios(data);
+
+    } catch (error) {
+      console.error(error);
+      alert("No se pudieron cargar cilindros vacíos");
     }
   };
 
@@ -160,6 +182,11 @@ export default function DespachoDevolucion() {
         return;
       }
 
+      if (tipo === "M002" && !cambio) {
+        alert("Seleccione cilindro de cambio");
+        return;
+      }
+
       const payload = {
         fecha,
         cilindro,
@@ -168,6 +195,7 @@ export default function DespachoDevolucion() {
         tipo,
         encargado_almacen: encargado,
         responsable_area: responsable.trim(),
+        cambio: tipo === "M002" ? cambio : null,
         registrado_por: codigoUsuario,
         obs: obs.trim()
       };
@@ -196,6 +224,8 @@ export default function DespachoDevolucion() {
     setResponsable("");
     setInfo("");
     setObs("");
+    setCambio("");
+    setCilindrosVacios([]);
   };
 
   return (
@@ -233,7 +263,10 @@ export default function DespachoDevolucion() {
         <Campo label="Material">
           <select
             value={material}
-            onChange={(e) => setMaterial(e.target.value.toUpperCase())}
+            onChange={(e) => {
+              setMaterial(e.target.value.toUpperCase());
+              cargarCilindrosVacios(e.target.value.toUpperCase());
+            }}
             style={input}
           >
             <option value="">Seleccione</option>
@@ -310,6 +343,24 @@ export default function DespachoDevolucion() {
             style={inputReadOnly}
           />
         </Campo>
+
+        {tipo === "M002" && (
+          <Campo label="Cilindro de cambio">
+            <select
+              value={cambio}
+              onChange={(e) => setCambio(e.target.value)}
+              style={input}
+              disabled={!material || cilindrosVacios.length === 0}
+            >
+              <option value="">Seleccione cilindro vacío</option>
+              {cilindrosVacios.map(c => (
+                <option key={c.cilindro} value={c.cilindro}>
+                  {c.cilindro} - VACIO
+                </option>
+              ))}
+            </select>
+          </Campo>
+        )}
 
         <Campo label="Observación">
           <textarea

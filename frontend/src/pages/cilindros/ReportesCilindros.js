@@ -123,6 +123,7 @@ function ReporteIngresos() {
     transportista: nombreTransportista(d.transportista),
     tipo: nombreMovimiento(d.tipo),
     registrado_por: nombreUsuario(d.registrado_por),
+    cambio: d.cambio || "",
     obs: d.obs || ""
   }));
 
@@ -198,6 +199,7 @@ function ReporteIngresos() {
           "Transportista",
           "Tipo",
           "Registrado por",
+          "Cambio",
           "Obs."
         ]}
         rows={rowsExport.map(d => [
@@ -209,6 +211,7 @@ function ReporteIngresos() {
           d.transportista,
           d.tipo,
           d.registrado_por,
+          d.cambio || "",
           <button
             disabled={!d.obs || !String(d.obs).trim()}
             onClick={() => alert(d.obs)}
@@ -308,6 +311,7 @@ function ReporteMovimientos() {
     autorizado_por: nombreUsuario(d.encargado_almacen),
     responsable: d.responsable_area,
     registrado_por: nombreUsuario(d.registrado_por),
+    cambio: d.cambio || "",
     obs: d.obs || ""
   }));
 
@@ -395,6 +399,7 @@ function ReporteMovimientos() {
           "Autorizado por",
           "Responsable",
           "Registrado por",
+          "Cambio",
           "Obs."
         ]}
         rows={rowsExport.map(d => [
@@ -406,6 +411,7 @@ function ReporteMovimientos() {
           d.autorizado_por,
           d.responsable,
           d.registrado_por,
+          d.cambio,
           <button
             disabled={!d.obs || !String(d.obs).trim()}
             onClick={() => alert(d.obs)}
@@ -495,6 +501,7 @@ function ReporteKardex() {
     material: nombreProducto(d.material),
     area: nombreArea(d.area),
     registrado_por: nombreUsuario(d.registrado_por),
+    cambio: d.cambio || "",
     obs: d.obs || ""
   }));
 
@@ -532,6 +539,7 @@ function ReporteKardex() {
           "Material",
           "Área",
           "Registrado por",
+          "Cambio",
           "Obs."
         ]}
         rows={rowsExport.map(d => [
@@ -543,6 +551,7 @@ function ReporteKardex() {
           d.material,
           d.area,
           d.registrado_por,
+          d.cambio,
           <button
             disabled={!d.obs || !String(d.obs).trim()}
             onClick={() => alert(d.obs)}

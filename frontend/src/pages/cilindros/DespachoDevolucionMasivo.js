@@ -19,6 +19,7 @@ export default function DespachoDevolucionMasivo() {
   const [disponibles, setDisponibles] = useState([]);
   const [filas, setFilas] = useState([]);
   const [tiposEstado, setTiposEstado] = useState([]);
+  const [cilindrosVacios, setCilindrosVacios] = useState([]);
 
   const [areaBloqueada, setAreaBloqueada] = useState(false);
   const [areaDevolucionNombre, setAreaDevolucionNombre] = useState("");
@@ -78,6 +79,22 @@ export default function DespachoDevolucionMasivo() {
     }
   };
 
+  const cargarVaciosPorMaterial = async (materialSeleccionado) => {
+    try {
+      if (!materialSeleccionado) return [];
+
+      const data = await apiGet(
+        `/api/cilindros/vacios?material=${materialSeleccionado}`
+      );
+
+      return data;
+    } catch (error) {
+      console.error(error);
+      alert("No se pudieron cargar cilindros vacíos");
+      return [];
+    }
+  };
+
   const cambiarTipo = (nuevoTipo) => {
     setTipo(nuevoTipo);
     setMaterialBuscar("");
@@ -115,7 +132,7 @@ export default function DespachoDevolucionMasivo() {
     return item ? item.codigo : "";
   };*/
 
-  const agregarCilindro = (codigo) => {
+  const agregarCilindro = async (codigo) => {
     if (!codigo) return;
 
     const yaExiste = filas.some(f => f.cilindro === codigo);
@@ -162,6 +179,12 @@ export default function DespachoDevolucionMasivo() {
       }
     }
 
+    let vaciosCambio = [];
+
+    if (tipo === "M002") {
+      vaciosCambio = await cargarVaciosPorMaterial(seleccionado.material);
+    }
+
     setFilas(prev => [
       ...prev,
       {
@@ -169,9 +192,21 @@ export default function DespachoDevolucionMasivo() {
         material: seleccionado.material,
         material_nombre: obtenerNombreProducto(seleccionado.material),
         estado: seleccionado.estado,
-        ubicacion: obtenerNombreArea(seleccionado.ubicacion) || ""
+        ubicacion: obtenerNombreArea(seleccionado.ubicacion) || "",
+        cambio: "",
+        vaciosCambio
       }
     ]);
+  };
+
+  const actualizarCambioFila = (cilindro, cambio) => {
+    setFilas(prev =>
+      prev.map(f =>
+        f.cilindro === cilindro
+          ? { ...f, cambio }
+          : f
+      )
+    );
   };
 
   const eliminarFila = (codigo) => {
@@ -205,6 +240,15 @@ export default function DespachoDevolucionMasivo() {
       return;
     }
 
+    if (tipo === "M002") {
+      const sinCambio = filas.find(f => !f.cambio);
+
+      if (sinCambio) {
+        alert(`Seleccione cilindro de cambio para ${sinCambio.cilindro}`);
+        return;
+      }
+    }
+
     const areaNombre = tipo === "M002"
       ? obtenerNombreArea(area)
       : areaDevolucionNombre;
@@ -220,7 +264,8 @@ export default function DespachoDevolucionMasivo() {
         registrado_por: codigoUsuario,
         cilindros: filas.map(f => ({
           cilindro: f.cilindro,
-          material: f.material
+          material: f.material,
+          cambio: tipo === "M002" ? f.cambio : null
         })),
         obs: obs.trim()
       };
@@ -416,6 +461,7 @@ export default function DespachoDevolucionMasivo() {
               <th style={th}>Material</th>
               <th style={th}>Estado actual</th>
               <th style={th}>Ubicación actual</th>
+              {tipo === "M002" && <th style={th}>Cambio</th>}
               <th style={th}>Eliminar</th>
             </tr>
           </thead>
@@ -427,6 +473,26 @@ export default function DespachoDevolucionMasivo() {
                 <td style={td}>{f.material_nombre}</td>
                 <td style={td}>{nombreEstado(f.estado)}</td>
                 <td style={td}>{f.ubicacion}</td>
+                {tipo === "M002" && (
+                  <td style={td}>
+                    <select
+                      value={f.cambio || ""}
+                      onChange={(e) =>
+                        actualizarCambioFila(f.cilindro, e.target.value)
+                      }
+                      style={inputTabla}
+                    >
+                      <option value="">Seleccione</option>
+                      {f.vaciosCambio
+                        .filter(v => v.cilindro !== f.cilindro)
+                        .map(v => (
+                          <option key={v.cilindro} value={v.cilindro}>
+                            {v.cilindro}
+                          </option>
+                        ))}
+                    </select>
+                  </td>
+                )}
                 <td style={td}>
                   <button
                     onClick={() => eliminarFila(f.cilindro)}
@@ -607,4 +673,13 @@ const textarea = {
   border: "1px solid #ccc",
   boxSizing: "border-box",
   resize: "vertical"
+};
+
+const inputTabla = {
+  width: "100%",
+  minWidth: "160px",
+  padding: "8px",
+  borderRadius: "5px",
+  border: "1px solid #ccc",
+  boxSizing: "border-box"
 };
