@@ -110,7 +110,7 @@ function ReporteIngresos() {
     documento: d.nro_documento,
     cilindro: d.cilindro,
     producto: nombreProducto(d.producto),
-    transportista: nombreTransportista(d.transportista || d.cod_transportista),
+    transportista: nombreTransportista(d.transportista),
     tipo: d.tipo,
     registrado_por: nombreUsuario(d.registrado_por)
   }));
