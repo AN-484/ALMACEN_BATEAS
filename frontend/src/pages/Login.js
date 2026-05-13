@@ -97,20 +97,24 @@ import { apiPost } from "../services/api";
 
 export default function Login() {
   const [dni, setDni] = useState("");
+  const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     localStorage.clear();
-
     window.history.replaceState(null, "", "/");
   }, []);
 
   const ingresar = async () => {
+    if (cargando) return;
+
     try {
       if (dni.length !== 8) {
         alert("El DNI debe tener 8 dígitos");
         return;
       }
+
+      setCargando(true);
 
       const data = await apiPost("/api/auth/login", { dni });
 
@@ -123,14 +127,16 @@ export default function Login() {
           "puede_datos",
           data.permisos?.puede_datos ? "SI" : "NO"
         );
+
         navigate("/dashboard", { replace: true });
       } else {
         alert("DNI no autorizado");
       }
-
     } catch (error) {
       console.error(error);
       alert("No se pudo conectar con el servidor");
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -142,11 +148,8 @@ export default function Login() {
 
   return (
     <div style={container}>
-
-      {/* CAPA OSCURA */}
       <div style={overlay}></div>
 
-      {/* FORMULARIO */}
       <div style={card}>
         <h2 style={{ textAlign: "center" }}>AlmaCore</h2>
 
@@ -159,19 +162,32 @@ export default function Login() {
           placeholder="Ingrese su DNI"
           value={dni}
           maxLength={8}
-          onChange={(e) => setDni(e.target.value.toUpperCase().replace(/\D/g, ""))}
+          disabled={cargando}
+          onChange={(e) =>
+            setDni(e.target.value.toUpperCase().replace(/\D/g, ""))
+          }
           onKeyDown={handleKey}
           style={input}
         />
 
-        <button onClick={ingresar} style={btn}>
-          Ingresar
+        <button
+          onClick={ingresar}
+          style={cargando ? btnDisabled : btn}
+          disabled={cargando}
+        >
+          {cargando ? "Ingresando..." : "Ingresar"}
         </button>
+
+        {cargando && (
+          <div style={loadingBox}>
+            <span style={spinner}></span>
+            <span>Conectando con el servidor...</span>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-
 
 const container = {
   position: "relative",
@@ -189,13 +205,13 @@ const overlay = {
   position: "absolute",
   width: "100%",
   height: "100%",
-  background: "rgba(0,0,0,0.5)" // oscurece fondo
+  background: "rgba(0,0,0,0.5)"
 };
 
 const card = {
   position: "relative",
   background: "rgba(255,255,255,0.85)",
-  backdropFilter: "blur(0.5clearpx)",
+  backdropFilter: "blur(6px)",
   padding: "35px",
   borderRadius: "12px",
   boxShadow: "0 0 20px rgba(0,0,0,0.3)",
@@ -208,7 +224,8 @@ const input = {
   padding: "12px",
   marginBottom: "15px",
   borderRadius: "6px",
-  border: "1px solid #ccc"
+  border: "1px solid #ccc",
+  boxSizing: "border-box"
 };
 
 const btn = {
@@ -220,4 +237,30 @@ const btn = {
   color: "white",
   cursor: "pointer",
   fontWeight: "bold"
+};
+
+const btnDisabled = {
+  ...btn,
+  background: "#718093",
+  cursor: "not-allowed"
+};
+
+const loadingBox = {
+  marginTop: "15px",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: "8px",
+  fontSize: "13px",
+  color: "#333"
+};
+
+const spinner = {
+  width: "14px",
+  height: "14px",
+  border: "3px solid #dcdde1",
+  borderTop: "3px solid #273c75",
+  borderRadius: "50%",
+  display: "inline-block",
+  animation: "spin 1s linear infinite"
 };
