@@ -101,7 +101,7 @@ function ReporteIngresos() {
 
   const nombreUsuario = (codigo) => {
     const item = usuarios.find(u => u.codigo === codigo);
-    return item ? item.nombre : codigo;
+    return item ? item.sub_nombre: codigo;
   };
 
   const rowsExport = datos.map(d => ({
@@ -261,7 +261,7 @@ function ReporteMovimientos() {
 
   const nombreUsuario = (codigo) => {
     const item = usuarios.find(u => u.codigo === codigo);
-    return item ? item.nombre : codigo;
+    return item ? item.sub_nombre : codigo;
   };
 
   const rowsExport = datos.map(d => ({
@@ -422,7 +422,7 @@ function ReporteKardex() {
 
   const nombreUsuario = (codigo) => {
     const item = usuarios.find(u => u.codigo === codigo);
-    return item ? item.nombre : codigo;
+    return item ? item.sub_nombre : codigo;
   };
 
   const rowsExport = datos.map(d => ({
