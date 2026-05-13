@@ -21,6 +21,8 @@ export default function DespachoDevolucion() {
   const [disponibles, setDisponibles] = useState([]);
   const [tiposEstado, setTiposEstado] = useState([]);
 
+  const [sinCambio, setSinCambio] = useState(false);
+
   const [info, setInfo] = useState("");
 
   const codigoUsuario = localStorage.getItem("codigo");
@@ -111,6 +113,7 @@ export default function DespachoDevolucion() {
     setArea("");
     setResponsable("");
     setInfo("");
+    setSinCambio(false);
   };
   
   const obtenerNombreArea = (codigoArea) => {
@@ -182,8 +185,13 @@ export default function DespachoDevolucion() {
         return;
       }
 
-      if (tipo === "M002" && !cambio) {
+      if (tipo === "M002" && !sinCambio && !cambio) {
         alert("Seleccione cilindro de cambio");
+        return;
+      }
+
+      if (tipo === "M002" && sinCambio && (!obs || !obs.trim())) {
+        alert("Debe escribir una observación cuando el despacho es sin cilindro de cambio");
         return;
       }
 
@@ -195,7 +203,8 @@ export default function DespachoDevolucion() {
         tipo,
         encargado_almacen: encargado,
         responsable_area: responsable.trim(),
-        cambio: tipo === "M002" ? cambio : null,
+        sin_cambio: sinCambio,
+        cambio: tipo === "M002" && !sinCambio ? cambio : null,
         registrado_por: codigoUsuario,
         obs: obs.trim()
       };
@@ -226,6 +235,7 @@ export default function DespachoDevolucion() {
     setObs("");
     setCambio("");
     setCilindrosVacios([]);
+    setSinCambio(false);
   };
 
   return (
@@ -344,7 +354,7 @@ export default function DespachoDevolucion() {
           />
         </Campo>
 
-        {tipo === "M002" && (
+        {tipo === "M002" && !sinCambio && (
           <Campo label="Cilindro de cambio">
             <select
               value={cambio}
@@ -359,6 +369,24 @@ export default function DespachoDevolucion() {
                 </option>
               ))}
             </select>
+          </Campo>
+        )}
+
+        {tipo === "M002" && (
+          <Campo label="Opciones de despacho">
+            <label style={checkLabel}>
+              <input
+                type="checkbox"
+                checked={sinCambio}
+                onChange={(e) => {
+                  setSinCambio(e.target.checked);
+                  if (e.target.checked) {
+                    setCambio("");
+                  }
+                }}
+              />
+              Despacho sin cilindro de cambio
+            </label>
           </Campo>
         )}
 
@@ -497,4 +525,15 @@ const textarea = {
   border: "1px solid #ccc",
   boxSizing: "border-box",
   resize: "vertical"
+};
+
+const checkLabel = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  padding: "10px",
+  border: "1px solid #ccc",
+  borderRadius: "6px",
+  background: "#f5f6fa",
+  cursor: "pointer"
 };

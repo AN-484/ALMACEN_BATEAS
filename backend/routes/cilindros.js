@@ -484,11 +484,22 @@ router.post("/despacho-devolucion", async (req, res) => {
       }
     }
 
-    if (tipo === "M002" && !cambio) {
-      return res.status(400).json({
-        success: false,
-        message: "Debe seleccionar cilindro de cambio para el despacho"
-      });
+    const sin_cambio = req.body.sin_cambio === true;
+
+    if (tipo === "M002") {
+      if (!sin_cambio && !cambio) {
+        return res.status(400).json({
+          success: false,
+          message: "Debe seleccionar cilindro de cambio para el despacho"
+        });
+      }
+
+      if (sin_cambio && (!obs || !String(obs).trim())) {
+        return res.status(400).json({
+          success: false,
+          message: "Debe escribir una observación cuando el despacho es sin cilindro de cambio"
+        });
+      }
     }
 
     const { data: cilindroObj, error: errorCilindro } = await supabase
@@ -514,7 +525,7 @@ router.post("/despacho-devolucion", async (req, res) => {
         tipo,
         encargado_almacen,
         responsable_area,
-        cambio: tipo === "M002" ? cambio : null,
+        cambio: tipo === "M002" && !sin_cambio ? cambio : null,
         registrado_por,
         obs: obs || ""
       });
@@ -965,7 +976,8 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
       responsable_area,
       registrado_por,
       cilindros,
-      obs
+      obs,
+      sin_cambio
     } = req.body;
 
     if (
@@ -993,6 +1005,13 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
 
     let registrados = 0;
     const errores = [];
+
+    if (tipo === "M002" && sin_cambio && (!obs || !String(obs).trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Debe escribir una observación cuando el despacho es sin cilindro de cambio"
+      });
+    }
 
     for (const item of cilindros) {
       try {
@@ -1053,7 +1072,7 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
         }
 
         
-        if (tipo === "M002" && !cambioFila) {
+        if (tipo === "M002" && !sin_cambio && !cambioFila) {
           errores.push(`${codigo}: debe seleccionar cilindro de cambio`);
           continue;
         }
@@ -1085,7 +1104,7 @@ router.post("/despacho-devolucion-masivo", async (req, res) => {
             tipo,
             encargado_almacen,
             responsable_area,
-            cambio: tipo === "M002" ? cambioFila : null,
+            cambio: tipo === "M002" && !sin_cambio ? cambioFila : null,
             registrado_por,
             obs: obs || ""
           });

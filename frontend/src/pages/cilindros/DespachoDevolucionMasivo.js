@@ -21,6 +21,8 @@ export default function DespachoDevolucionMasivo() {
   const [tiposEstado, setTiposEstado] = useState([]);
   const [cilindrosVacios, setCilindrosVacios] = useState([]);
 
+  const [sinCambio, setSinCambio] = useState(false);
+
   const [areaBloqueada, setAreaBloqueada] = useState(false);
   const [areaDevolucionNombre, setAreaDevolucionNombre] = useState("");
 
@@ -102,6 +104,7 @@ export default function DespachoDevolucionMasivo() {
     setResponsable("");
     setFilas([]);
     liberarAreaDevolucion();
+    setSinCambio(false);
   };
 
   const liberarAreaDevolucion = () => {
@@ -240,13 +243,18 @@ export default function DespachoDevolucionMasivo() {
       return;
     }
 
-    if (tipo === "M002") {
-      const sinCambio = filas.find(f => !f.cambio);
+    if (tipo === "M002" && !sinCambio) {
+      const filaSinCambio = filas.find(f => !f.cambio);
 
-      if (sinCambio) {
-        alert(`Seleccione cilindro de cambio para ${sinCambio.cilindro}`);
+      if (filaSinCambio) {
+        alert(`Seleccione cilindro de cambio para ${filaSinCambio.cilindro}`);
         return;
       }
+    }
+
+    if (tipo === "M002" && sinCambio && (!obs || !obs.trim())) {
+      alert("Debe escribir una observación cuando el despacho es sin cilindro de cambio");
+      return;
     }
 
     const areaNombre = tipo === "M002"
@@ -265,8 +273,9 @@ export default function DespachoDevolucionMasivo() {
         cilindros: filas.map(f => ({
           cilindro: f.cilindro,
           material: f.material,
-          cambio: tipo === "M002" ? f.cambio : null
+          cambio: tipo === "M002" && !sinCambio ? f.cambio : null
         })),
+        sin_cambio: sinCambio,
         obs: obs.trim()
       };
 
@@ -304,6 +313,7 @@ export default function DespachoDevolucionMasivo() {
     setFilas([]);
     liberarAreaDevolucion();
     setObs("");
+    setSinCambio(false);
   };
 
   return (
@@ -424,6 +434,30 @@ export default function DespachoDevolucionMasivo() {
           />
         </Campo>
 
+        {tipo === "M002" && (
+          <Campo label="Opciones de despacho">
+            <label style={checkLabel}>
+              <input
+                type="checkbox"
+                checked={sinCambio}
+                onChange={(e) => {
+                  setSinCambio(e.target.checked);
+
+                  if (e.target.checked) {
+                    setFilas(prev =>
+                      prev.map(f => ({
+                        ...f,
+                        cambio: ""
+                      }))
+                    );
+                  }
+                }}
+              />
+              Despacho sin cilindro de cambio
+            </label>
+          </Campo>
+        )}
+
         <Campo label="Registrado por">
           <input
             value={nombreUsuario || ""}
@@ -461,7 +495,7 @@ export default function DespachoDevolucionMasivo() {
               <th style={th}>Material</th>
               <th style={th}>Estado actual</th>
               <th style={th}>Ubicación actual</th>
-              {tipo === "M002" && <th style={th}>Cambio</th>}
+              {tipo === "M002" && !sinCambio && <th style={th}>Cambio</th>}
               <th style={th}>Eliminar</th>
             </tr>
           </thead>
@@ -473,7 +507,7 @@ export default function DespachoDevolucionMasivo() {
                 <td style={td}>{f.material_nombre}</td>
                 <td style={td}>{nombreEstado(f.estado)}</td>
                 <td style={td}>{f.ubicacion}</td>
-                {tipo === "M002" && (
+                {tipo === "M002" && !sinCambio && (
                   <td style={td}>
                     <select
                       value={f.cambio || ""}
@@ -682,4 +716,15 @@ const inputTabla = {
   borderRadius: "5px",
   border: "1px solid #ccc",
   boxSizing: "border-box"
+};
+
+const checkLabel = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  padding: "10px",
+  border: "1px solid #ccc",
+  borderRadius: "6px",
+  background: "#f5f6fa",
+  cursor: "pointer"
 };
