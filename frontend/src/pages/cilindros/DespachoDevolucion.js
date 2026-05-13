@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { apiGet, apiPost } from "../../services/api";
 
 export default function DespachoDevolucion() {
-  const [tipo, setTipo] = useState("M002"); // M002 = DESPACHO, M003 = DEVOLUCION 
+  const [tipo, setTipo] = useState("M003"); // M002 = DESPACHO, M003 = DEVOLUCION 
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
 
   const [material, setMaterial] = useState("");
@@ -203,6 +203,14 @@ export default function DespachoDevolucion() {
       <h3>Despacho / Devolución</h3>
 
       <div style={tipoBox}>
+
+        <button
+            onClick={() => cambiarTipo("M003")}
+            style={tipo === "M003" ? btnDevolucionActivo : btnTipo}
+          >
+            📥 DEVOLUCIÓN
+        </button>
+        
         <button
           onClick={() => cambiarTipo("M002")}
           style={tipo === "M002" ? btnDespachoActivo : btnTipo}
@@ -210,12 +218,6 @@ export default function DespachoDevolucion() {
           🚚 DESPACHO
         </button>
 
-        <button
-          onClick={() => cambiarTipo("M003")}
-          style={tipo === "M003" ? btnDevolucionActivo : btnTipo}
-        >
-          📥 DEVOLUCIÓN
-        </button>
       </div>
 
       <div style={grid}>

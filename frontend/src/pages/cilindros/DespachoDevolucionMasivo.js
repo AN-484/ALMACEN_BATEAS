@@ -4,7 +4,7 @@ import { apiGet, apiPost } from "../../services/api";
 export default function DespachoDevolucionMasivo() {
   const hoy = new Date().toISOString().slice(0, 10);
 
-  const [tipo, setTipo] = useState("M002"); // M002 = DESPACHO, M003 = DEVOLUCION 
+  const [tipo, setTipo] = useState("M003"); // M002 = DESPACHO, M003 = DEVOLUCION 
   const [fecha, setFecha] = useState(hoy);
 
   const [materialBuscar, setMaterialBuscar] = useState("");
@@ -267,18 +267,19 @@ export default function DespachoDevolucionMasivo() {
 
       <div style={tipoBox}>
         <button
+          onClick={() => cambiarTipo("M003")}
+          style={tipo === "M003" ? btnDevolucionActivo : btnTipo}
+        >
+          📥 DEVOLUCIÓN
+        </button>
+        
+        <button
           onClick={() => cambiarTipo("M002")}
           style={tipo === "M002" ? btnDespachoActivo : btnTipo}
         >
           🚚 DESPACHO
         </button>
 
-        <button
-          onClick={() => cambiarTipo("M003")}
-          style={tipo === "M003" ? btnDevolucionActivo : btnTipo}
-        >
-          📥 DEVOLUCIÓN
-        </button>
       </div>
 
       <div style={grid}>
