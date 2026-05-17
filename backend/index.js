@@ -51,6 +51,7 @@ require("dotenv").config();
 const authRoutes = require("./routes/auth");
 const cilindrosRoutes = require("./routes/cilindros");
 const maestrosRoutes = require("./routes/maestros");
+const msdsRoutes = require("./routes/msds");
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/cilindros", cilindrosRoutes);
 app.use("/api/maestros", maestrosRoutes);
+app.use("/api/msds", msdsRoutes);
 
 // TEST
 app.get("/", (req, res) => {
