@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const supabase = require("../services/supabaseClient");
-const { USUARIOS_CON_DATOS } = require("../middleware/permisos");
 
 router.post("/login", async (req, res) => {
   try {
@@ -28,11 +27,13 @@ router.post("/login", async (req, res) => {
       });
     }
 
+    const puedeDatos = Number(data.permisos) === 1;
+
     return res.json({
       success: true,
       user: data,
       permisos: {
-        puede_datos: USUARIOS_CON_DATOS.includes(data.nombre)
+        puede_datos: puedeDatos
       }
     });
 

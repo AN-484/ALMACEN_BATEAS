@@ -32,7 +32,7 @@ const TABLAS = {
   usuarios: {
     tabla: "usuarios",
     pk: "codigo",
-    columnas: ["codigo", "dni", "nombre", "cargo"]
+    columnas: ["codigo", "dni", "nombre", "cargo", "permisos"]
   },
   cilindros: {
     tabla: "cilindros",

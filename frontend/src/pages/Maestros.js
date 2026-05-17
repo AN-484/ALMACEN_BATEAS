@@ -45,7 +45,8 @@ const CONFIG = {
       { key: "codigo", label: "Código" },
       { key: "dni", label: "DNI" },
       { key: "nombre", label: "Nombre" },
-      { key: "cargo", label: "Cargo" }
+      { key: "cargo", label: "Cargo" },
+      { key: "permisos", label: "Permisos", type: "select" }
     ]
   },
   cilindros: {
@@ -286,6 +287,19 @@ function MaestroTabla({ tabla, config }) {
         >
           <option value="SI">SI</option>
           <option value="NO">NO</option>
+        </select>
+      );
+    }
+
+    if (tabla === "usuarios" && campo.key === "permisos") {
+      return (
+        <select
+          value={form[campo.key] || 0}
+          onChange={(e) => cambiar(campo.key, Number(e.target.value))}
+          style={input}
+        >
+          <option value={0}>0 - Solo consulta</option>
+          <option value={1}>1 - Administrador</option>
         </select>
       );
     }
