@@ -55,6 +55,18 @@ export default function Dashboard() {
             </button>
           </div>
 
+          <div style={card}>
+            <h4>🦺 EPPS</h4>
+            <p>Solicitud EPPS</p>
+
+            <button
+              onClick={() => navigate("/epps")}
+              style={btn}
+            >
+              Ingresar
+            </button>
+          </div>
+
           {/* INVENTARIO (FUTURO) */}
           <div style={card}>
             <h4>📦 Inventario</h4>

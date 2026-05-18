@@ -35,6 +35,10 @@ export default function Layout({ children }) {
             🧯 SCCO
           </button>
 
+          <button onClick={() => navigate("/epps")} style={btn}>
+            🦺 EPPS
+          </button>
+
           <hr />
 
           <button onClick={cerrarSesion} style={btnDanger}>

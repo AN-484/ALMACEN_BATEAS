@@ -52,6 +52,7 @@ const authRoutes = require("./routes/auth");
 const cilindrosRoutes = require("./routes/cilindros");
 const maestrosRoutes = require("./routes/maestros");
 const msdsRoutes = require("./routes/msds");
+const eppsRoutes = require("./routes/epps");
 
 const app = express();
 
@@ -63,6 +64,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/cilindros", cilindrosRoutes);
 app.use("/api/maestros", maestrosRoutes);
 app.use("/api/msds", msdsRoutes);
+app.use("/api/epps", eppsRoutes);
 
 // TEST
 app.get("/", (req, res) => {

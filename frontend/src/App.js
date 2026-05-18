@@ -53,6 +53,7 @@ import SMDS from "./pages/SMDS";
 import Cilindros from "./pages/Cilindros";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Maestros from "./pages/Maestros";
+import EPPS from "./pages/EPPS";
 
 function App() {
   return (
@@ -90,6 +91,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <Cilindros />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/epps"
+            element={
+              <ProtectedRoute>
+                <EPPS />
               </ProtectedRoute>
             }
           />
