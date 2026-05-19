@@ -11,8 +11,11 @@ export default function EscanearDocumentoPDF({ onPDFGenerado }) {
   const [procesando, setProcesando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [mejoraActiva, setMejoraActiva] = useState(true);
-  const [recorteAuto, setRecorteAuto] = useState(true);
   const [paginaPreview, setPaginaPreview] = useState(null);
+
+  const [fotoPendiente, setFotoPendiente] = useState(null);
+  const [puntosRecorte, setPuntosRecorte] = useState(null);
+  const [puntoActivo, setPuntoActivo] = useState(null);
 
   const abrirCamara = async () => {
     try {
@@ -86,47 +89,175 @@ export default function EscanearDocumentoPDF({ onPDFGenerado }) {
       const anchoOriginal = video.videoWidth;
       const altoOriginal = video.videoHeight;
 
-      // Máximo ancho para mantener nitidez sin hacer PDFs gigantes.
-      const anchoMax = 1800;
-      const escala = Math.min(1, anchoMax / anchoOriginal);
+      // Captura solo el área equivalente al recuadro A4 visual.
+      const cropWOriginal = Math.floor(anchoOriginal * 0.78);
+      const cropHOriginal = Math.floor(cropWOriginal * 1.414);
 
-      const ancho = Math.floor(anchoOriginal * escala);
-      const alto = Math.floor(altoOriginal * escala);
+      let finalCropW = cropWOriginal;
+      let finalCropH = cropHOriginal;
+
+      if (finalCropH > altoOriginal * 0.9) {
+        finalCropH = Math.floor(altoOriginal * 0.9);
+        finalCropW = Math.floor(finalCropH / 1.414);
+      }
+
+      const cropXOriginal = Math.floor((anchoOriginal - finalCropW) / 2);
+      const cropYOriginal = Math.floor((altoOriginal - finalCropH) / 2);
+
+      const anchoMax = 1600;
+      const escala = Math.min(1, anchoMax / finalCropW);
+
+      const ancho = Math.floor(finalCropW * escala);
+      const alto = Math.floor(finalCropH * escala);
 
       canvas.width = ancho;
-        canvas.height = alto;
+      canvas.height = alto;
 
-        ctx.drawImage(video, 0, 0, ancho, alto);
+      ctx.drawImage(
+        video,
+        cropXOriginal,
+        cropYOriginal,
+        finalCropW,
+        finalCropH,
+        0,
+        0,
+        ancho,
+        alto
+      );
 
-        // 1. Si está activo, recortamos la zona probable de hoja.
-        if (recorteAuto) {
-        aplicarRecorteAutomaticoHoja(canvas, ctx);
-        }
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
 
-        // 2. Luego aplicamos mejora visual.
-        const nuevoAncho = canvas.width;
-        const nuevoAlto = canvas.height;
+      setFotoPendiente({
+        id: Date.now(),
+        dataUrl,
+        width: ancho,
+        height: alto
+      });
 
-        if (mejoraActiva) {
-        mejorarImagenDocumentoCamScanner(ctx, nuevoAncho, nuevoAlto);
-        } else {
-        mejorarImagenDocumentoSuave(ctx, nuevoAncho, nuevoAlto);
-        }
+      setPuntosRecorte({
+        tl: { x: 0.05, y: 0.03 },
+        tr: { x: 0.95, y: 0.03 },
+        br: { x: 0.95, y: 0.97 },
+        bl: { x: 0.05, y: 0.97 }
+      });
 
-        const dataUrl = canvas.toDataURL("image/jpeg", mejoraActiva ? 0.9 : 0.86);
+      setMensaje("Ajuste las esquinas para dejar solo la hoja y confirme el recorte.");
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo capturar la página");
+    }
+  };
+
+  const moverPuntoMouse = (evento) => {
+    if (!puntoActivo || !puntosRecorte) return;
+
+    const rect = evento.currentTarget.getBoundingClientRect();
+
+    let x = (evento.clientX - rect.left) / rect.width;
+    let y = (evento.clientY - rect.top) / rect.height;
+
+    x = Math.max(0, Math.min(1, x));
+    y = Math.max(0, Math.min(1, y));
+
+    setPuntosRecorte(prev => ({
+      ...prev,
+      [puntoActivo]: { x, y }
+    }));
+  };
+
+  const moverPuntoTouch = (evento) => {
+    if (!puntoActivo || !puntosRecorte) return;
+
+    const touch = evento.touches[0];
+    if (!touch) return;
+
+    const rect = evento.currentTarget.getBoundingClientRect();
+
+    let x = (touch.clientX - rect.left) / rect.width;
+    let y = (touch.clientY - rect.top) / rect.height;
+
+    x = Math.max(0, Math.min(1, x));
+    y = Math.max(0, Math.min(1, y));
+
+    setPuntosRecorte(prev => ({
+      ...prev,
+      [puntoActivo]: { x, y }
+    }));
+  };
+
+  const finalizarMovimiento = () => {
+    setPuntoActivo(null);
+  };
+
+  const confirmarRecorteManual = async () => {
+    try {
+      if (!fotoPendiente || !puntosRecorte) return;
+
+      setProcesando(true);
+      setMensaje("Aplicando recorte...");
+
+      const dataUrlRecortado = await recortarPorPuntos(
+        fotoPendiente.dataUrl,
+        puntosRecorte,
+        mejoraActiva
+      );
 
       setPaginas(prev => [
         ...prev,
         {
           id: Date.now(),
-          dataUrl
+          dataUrl: dataUrlRecortado
         }
       ]);
 
-      setMensaje("Página capturada correctamente.");
+      setFotoPendiente(null);
+      setPuntosRecorte(null);
+      setPuntoActivo(null);
+      setMensaje("Página agregada correctamente.");
     } catch (error) {
       console.error(error);
-      alert("No se pudo capturar la página");
+      alert("No se pudo aplicar el recorte");
+    } finally {
+      setProcesando(false);
+    }
+  };
+
+  const cancelarRecorteManual = () => {
+    setFotoPendiente(null);
+    setPuntosRecorte(null);
+    setPuntoActivo(null);
+    setMensaje("Captura cancelada.");
+  };
+
+  const usarFotoSinAjustar = async () => {
+    try {
+      if (!fotoPendiente) return;
+
+      setProcesando(true);
+      setMensaje("Procesando imagen...");
+
+      const dataUrlFinal = await procesarImagenFinal(
+        fotoPendiente.dataUrl,
+        mejoraActiva
+      );
+
+      setPaginas(prev => [
+        ...prev,
+        {
+          id: Date.now(),
+          dataUrl: dataUrlFinal
+        }
+      ]);
+
+      setFotoPendiente(null);
+      setPuntosRecorte(null);
+      setPuntoActivo(null);
+      setMensaje("Página agregada sin ajuste manual.");
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo agregar la imagen");
+    } finally {
+      setProcesando(false);
     }
   };
 
@@ -229,27 +360,18 @@ export default function EscanearDocumentoPDF({ onPDFGenerado }) {
 
       <div style={opcionesMejora}>
         <label style={checkLabel}>
-            <input
+          <input
             type="checkbox"
             checked={mejoraActiva}
             onChange={(e) => setMejoraActiva(e.target.checked)}
-            />
-            Mejorar documento automáticamente
-        </label>
-
-        <label style={checkLabel}>
-            <input
-            type="checkbox"
-            checked={recorteAuto}
-            onChange={(e) => setRecorteAuto(e.target.checked)}
-            />
-            Recortar hoja automáticamente
+          />
+          Mejorar documento automáticamente
         </label>
 
         <span style={ayudaMejora}>
-            Blanquea fondo, mejora contraste y elimina bordes sobrantes.
+          Blanquea fondo, mejora contraste y mantiene sellos visibles.
         </span>
-        </div>
+      </div>
 
       {activo && (
         <div>
@@ -263,7 +385,7 @@ export default function EscanearDocumentoPDF({ onPDFGenerado }) {
             />
 
             <div style={guiaDocumento}>
-            Centre toda la hoja dentro del recuadro
+              Coloque toda la hoja dentro del recuadro
             </div>
           </div>
 
@@ -283,6 +405,85 @@ export default function EscanearDocumentoPDF({ onPDFGenerado }) {
         </div>
       )}
 
+      {fotoPendiente && puntosRecorte && (
+        <div style={recorteBox}>
+          <div style={recorteHeader}>
+            <div>
+              <h4 style={{ margin: 0 }}>Ajustar recorte de hoja</h4>
+              <p style={hint}>
+                Arrastre las esquinas para dejar solo la hoja.
+              </p>
+            </div>
+
+            <button onClick={cancelarRecorteManual} style={btnCerrar}>
+              Cancelar
+            </button>
+          </div>
+
+          <div
+            style={recorteImagenBox}
+            onMouseMove={moverPuntoMouse}
+            onMouseUp={finalizarMovimiento}
+            onMouseLeave={finalizarMovimiento}
+            onTouchMove={moverPuntoTouch}
+            onTouchEnd={finalizarMovimiento}
+          >
+            <img
+              src={fotoPendiente.dataUrl}
+              alt="Ajuste de recorte"
+              style={recorteImagen}
+              draggable={false}
+            />
+
+            <svg style={svgRecorte} viewBox="0 0 100 100" preserveAspectRatio="none">
+              <polygon
+                points={`
+                  ${puntosRecorte.tl.x * 100},${puntosRecorte.tl.y * 100}
+                  ${puntosRecorte.tr.x * 100},${puntosRecorte.tr.y * 100}
+                  ${puntosRecorte.br.x * 100},${puntosRecorte.br.y * 100}
+                  ${puntosRecorte.bl.x * 100},${puntosRecorte.bl.y * 100}
+                `}
+                fill="rgba(251, 197, 49, 0.18)"
+                stroke="#fbc531"
+                strokeWidth="0.8"
+              />
+            </svg>
+
+            {Object.entries(puntosRecorte).map(([key, punto]) => (
+              <button
+                key={key}
+                onMouseDown={() => setPuntoActivo(key)}
+                onTouchStart={() => setPuntoActivo(key)}
+                style={{
+                  ...puntoRecorte,
+                  left: `${punto.x * 100}%`,
+                  top: `${punto.y * 100}%`
+                }}
+                title={key}
+              />
+            ))}
+          </div>
+
+          <div style={acciones}>
+            <button
+              onClick={confirmarRecorteManual}
+              disabled={procesando}
+              style={procesando ? btnDisabled : btnGenerar}
+            >
+              {procesando ? "Procesando..." : "Confirmar recorte"}
+            </button>
+
+            <button
+              onClick={usarFotoSinAjustar}
+              disabled={procesando}
+              style={btnCapturar}
+            >
+              Usar sin ajustar
+            </button>
+          </div>
+        </div>
+      )}
+
       {paginas.length > 0 && (
         <div style={paginasBox}>
           <div style={paginasHeader}>
@@ -297,36 +498,36 @@ export default function EscanearDocumentoPDF({ onPDFGenerado }) {
             {paginas.map((pagina, index) => (
               <div key={pagina.id} style={miniaturaCard}>
                 <img
-                    src={pagina.dataUrl}
-                    alt={`Página ${index + 1}`}
-                    style={miniatura}
+                  src={pagina.dataUrl}
+                  alt={`Página ${index + 1}`}
+                  style={miniatura}
                 />
 
                 <div style={miniaturaFooter}>
-                    <span>Hoja {index + 1}</span>
+                  <span>Hoja {index + 1}</span>
 
-                    <div style={miniaturaAcciones}>
+                  <div style={miniaturaAcciones}>
                     <button
-                        onClick={() =>
+                      onClick={() =>
                         setPaginaPreview({
-                            ...pagina,
-                            index: index + 1
+                          ...pagina,
+                          index: index + 1
                         })
-                        }
-                        style={btnDetalle}
+                      }
+                      style={btnDetalle}
                     >
-                        Ver
+                      Ver
                     </button>
 
                     <button
-                        onClick={() => quitarPagina(pagina.id)}
-                        style={btnQuitar}
+                      onClick={() => quitarPagina(pagina.id)}
+                      style={btnQuitar}
                     >
-                        ✕
+                      ✕
                     </button>
-                    </div>
+                  </div>
                 </div>
-                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -340,34 +541,229 @@ export default function EscanearDocumentoPDF({ onPDFGenerado }) {
 
       {paginaPreview && (
         <div style={modalOverlay}>
-            <div style={modalContenido}>
+          <div style={modalContenido}>
             <div style={modalHeader}>
-                <h3 style={{ margin: 0 }}>
+              <h3 style={{ margin: 0 }}>
                 Vista previa - Hoja {paginaPreview.index}
-                </h3>
+              </h3>
 
-                <button
+              <button
                 onClick={() => setPaginaPreview(null)}
                 style={btnCerrarModal}
-                >
+              >
                 Cerrar
-                </button>
+              </button>
             </div>
 
             <div style={modalImagenBox}>
-                <img
+              <img
                 src={paginaPreview.dataUrl}
                 alt={`Vista previa hoja ${paginaPreview.index}`}
                 style={modalImagen}
-                />
+              />
             </div>
-            </div>
+          </div>
         </div>
-        )}
+      )}
 
       <canvas ref={canvasRef} style={{ display: "none" }} />
     </div>
   );
+}
+
+function recortarPorPuntos(dataUrl, puntos, aplicarMejora) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+
+    img.onload = () => {
+      try {
+        const srcCanvas = document.createElement("canvas");
+        const srcCtx = srcCanvas.getContext("2d");
+
+        srcCanvas.width = img.width;
+        srcCanvas.height = img.height;
+
+        srcCtx.drawImage(img, 0, 0);
+
+        const srcData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+
+        const w = img.width;
+        const h = img.height;
+
+        const p = {
+          tl: { x: puntos.tl.x * w, y: puntos.tl.y * h },
+          tr: { x: puntos.tr.x * w, y: puntos.tr.y * h },
+          br: { x: puntos.br.x * w, y: puntos.br.y * h },
+          bl: { x: puntos.bl.x * w, y: puntos.bl.y * h }
+        };
+
+        const anchoSuperior = distanciaPuntos(p.tl, p.tr);
+        const anchoInferior = distanciaPuntos(p.bl, p.br);
+        const altoIzquierdo = distanciaPuntos(p.tl, p.bl);
+        const altoDerecho = distanciaPuntos(p.tr, p.br);
+
+        let outW = Math.round(Math.max(anchoSuperior, anchoInferior));
+        let outH = Math.round(Math.max(altoIzquierdo, altoDerecho));
+
+        // Evitamos imágenes gigantes que puedan poner lenta la página.
+        const maxOutW = 1400;
+        if (outW > maxOutW) {
+          const escala = maxOutW / outW;
+          outW = Math.round(outW * escala);
+          outH = Math.round(outH * escala);
+        }
+
+        outW = Math.max(300, outW);
+        outH = Math.max(300, outH);
+
+        const outCanvas = document.createElement("canvas");
+        const outCtx = outCanvas.getContext("2d");
+
+        outCanvas.width = outW;
+        outCanvas.height = outH;
+
+        const outImage = outCtx.createImageData(outW, outH);
+        const outData = outImage.data;
+
+        for (let y = 0; y < outH; y++) {
+          const v = y / (outH - 1);
+
+          for (let x = 0; x < outW; x++) {
+            const u = x / (outW - 1);
+
+            /*
+              Mapeo bilineal:
+              convierte el cuadrilátero marcado por las 4 esquinas
+              en un rectángulo limpio.
+            */
+            const srcX =
+              (1 - u) * (1 - v) * p.tl.x +
+              u * (1 - v) * p.tr.x +
+              u * v * p.br.x +
+              (1 - u) * v * p.bl.x;
+
+            const srcY =
+              (1 - u) * (1 - v) * p.tl.y +
+              u * (1 - v) * p.tr.y +
+              u * v * p.br.y +
+              (1 - u) * v * p.bl.y;
+
+            const color = obtenerPixelBilineal(srcData, w, h, srcX, srcY);
+
+            const idx = (y * outW + x) * 4;
+
+            outData[idx] = color.r;
+            outData[idx + 1] = color.g;
+            outData[idx + 2] = color.b;
+            outData[idx + 3] = 255;
+          }
+        }
+
+        outCtx.putImageData(outImage, 0, 0);
+
+        if (aplicarMejora) {
+          mejorarImagenDocumentoCamScanner(outCtx, outW, outH);
+        } else {
+          mejorarImagenDocumentoSuave(outCtx, outW, outH);
+        }
+
+        resolve(outCanvas.toDataURL("image/jpeg", aplicarMejora ? 0.9 : 0.86));
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+function distanciaPuntos(a, b) {
+  return Math.sqrt(
+    Math.pow(a.x - b.x, 2) +
+    Math.pow(a.y - b.y, 2)
+  );
+}
+
+function obtenerPixelBilineal(imageData, width, height, x, y) {
+  x = Math.max(0, Math.min(width - 1, x));
+  y = Math.max(0, Math.min(height - 1, y));
+
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
+  const x1 = Math.min(width - 1, x0 + 1);
+  const y1 = Math.min(height - 1, y0 + 1);
+
+  const dx = x - x0;
+  const dy = y - y0;
+
+  const c00 = obtenerPixel(imageData, width, x0, y0);
+  const c10 = obtenerPixel(imageData, width, x1, y0);
+  const c01 = obtenerPixel(imageData, width, x0, y1);
+  const c11 = obtenerPixel(imageData, width, x1, y1);
+
+  return {
+    r: interpolar(
+      interpolar(c00.r, c10.r, dx),
+      interpolar(c01.r, c11.r, dx),
+      dy
+    ),
+    g: interpolar(
+      interpolar(c00.g, c10.g, dx),
+      interpolar(c01.g, c11.g, dx),
+      dy
+    ),
+    b: interpolar(
+      interpolar(c00.b, c10.b, dx),
+      interpolar(c01.b, c11.b, dx),
+      dy
+    )
+  };
+}
+
+function obtenerPixel(imageData, width, x, y) {
+  const idx = (y * width + x) * 4;
+
+  return {
+    r: imageData.data[idx],
+    g: imageData.data[idx + 1],
+    b: imageData.data[idx + 2]
+  };
+}
+
+function interpolar(a, b, t) {
+  return Math.round(a + (b - a) * t);
+}
+
+function procesarImagenFinal(dataUrl, aplicarMejora) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        ctx.drawImage(img, 0, 0);
+
+        if (aplicarMejora) {
+          mejorarImagenDocumentoCamScanner(ctx, canvas.width, canvas.height);
+        } else {
+          mejorarImagenDocumentoSuave(ctx, canvas.width, canvas.height);
+        }
+
+        resolve(canvas.toDataURL("image/jpeg", aplicarMejora ? 0.9 : 0.86));
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
 }
 
 function mejorarImagenDocumentoSuave(ctx, width, height) {
@@ -400,38 +796,26 @@ function mejorarImagenDocumentoCamScanner(ctx, width, height) {
     let g = data[i + 1];
     let b = data[i + 2];
 
-    // Luminancia perceptual
     let gris = 0.299 * r + 0.587 * g + 0.114 * b;
-
-    // Contraste tipo documento:
-    // - fondos claros se empujan a blanco
-    // - texto oscuro se oscurece
     let nuevo;
 
     if (gris > 205) {
-      // Fondo casi blanco
       nuevo = 255;
     } else if (gris > 165) {
-      // Fondo gris claro / sombras suaves
       nuevo = Math.min(255, gris * 1.28);
     } else if (gris > 110) {
-      // Zona media: contraste
       nuevo = gris * 0.92;
     } else {
-      // Texto oscuro
       nuevo = gris * 0.72;
     }
 
     nuevo = Math.max(0, Math.min(255, nuevo));
 
-    // Mantener algo de color en sellos/firmas.
-    // Si el píxel tiene mucho color, no lo volvemos totalmente gris.
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
     const saturacion = max - min;
 
     if (saturacion > 45 && gris < 210) {
-      // Color detectado: sello, firma, tinta azul/roja, etc.
       data[i] = Math.min(255, r * 1.08);
       data[i + 1] = Math.min(255, g * 1.08);
       data[i + 2] = Math.min(255, b * 1.08);
@@ -443,97 +827,6 @@ function mejorarImagenDocumentoCamScanner(ctx, width, height) {
   }
 
   ctx.putImageData(imageData, 0, 0);
-}
-
-function aplicarRecorteAutomaticoHoja(canvas, ctx) {
-  const width = canvas.width;
-  const height = canvas.height;
-
-  const imageData = ctx.getImageData(0, 0, width, height);
-  const data = imageData.data;
-
-  let minX = width;
-  let minY = height;
-  let maxX = 0;
-  let maxY = 0;
-
-  const paso = 6;
-
-  for (let y = 0; y < height; y += paso) {
-    for (let x = 0; x < width; x += paso) {
-      const i = (y * width + x) * 4;
-
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-
-      const brillo = (r + g + b) / 3;
-
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
-      const saturacion = max - min;
-
-      /*
-        Detectamos zonas claras tipo hoja:
-        - brillo alto
-        - baja saturación
-        Esto evita tomar objetos coloridos como parte de la hoja.
-      */
-      const pareceHoja = brillo > 145 && saturacion < 55;
-
-      if (pareceHoja) {
-        if (x < minX) minX = x;
-        if (y < minY) minY = y;
-        if (x > maxX) maxX = x;
-        if (y > maxY) maxY = y;
-      }
-    }
-  }
-
-  const anchoDetectado = maxX - minX;
-  const altoDetectado = maxY - minY;
-
-  // Si no detecta una zona razonable, no recortamos.
-  if (
-    anchoDetectado < width * 0.35 ||
-    altoDetectado < height * 0.35 ||
-    minX >= maxX ||
-    minY >= maxY
-  ) {
-    return;
-  }
-
-  // Margen pequeño para no cortar bordes del documento.
-  const margenX = Math.floor(anchoDetectado * 0.04);
-  const margenY = Math.floor(altoDetectado * 0.04);
-
-  const cropX = Math.max(0, minX - margenX);
-  const cropY = Math.max(0, minY - margenY);
-  const cropW = Math.min(width - cropX, anchoDetectado + margenX * 2);
-  const cropH = Math.min(height - cropY, altoDetectado + margenY * 2);
-
-  const tempCanvas = document.createElement("canvas");
-  const tempCtx = tempCanvas.getContext("2d");
-
-  tempCanvas.width = cropW;
-  tempCanvas.height = cropH;
-
-  tempCtx.drawImage(
-    canvas,
-    cropX,
-    cropY,
-    cropW,
-    cropH,
-    0,
-    0,
-    cropW,
-    cropH
-  );
-
-  canvas.width = cropW;
-  canvas.height = cropH;
-
-  ctx.drawImage(tempCanvas, 0, 0);
 }
 
 const card = {
@@ -593,8 +886,9 @@ const video = {
 
 const guiaDocumento = {
   position: "absolute",
-  width: "82%",
-  height: "86%",
+  width: "78%",
+  aspectRatio: "1 / 1.414",
+  maxHeight: "90%",
   top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
@@ -693,6 +987,22 @@ const miniaturaFooter = {
   fontSize: "13px"
 };
 
+const miniaturaAcciones = {
+  display: "flex",
+  gap: "6px",
+  alignItems: "center"
+};
+
+const btnDetalle = {
+  border: "none",
+  background: "#273c75",
+  color: "white",
+  borderRadius: "6px",
+  cursor: "pointer",
+  padding: "4px 8px",
+  fontSize: "12px"
+};
+
 const btnQuitar = {
   border: "none",
   background: "#e84118",
@@ -736,22 +1046,6 @@ const checkLabel = {
 const ayudaMejora = {
   color: "#666",
   fontSize: "13px"
-};
-
-const miniaturaAcciones = {
-  display: "flex",
-  gap: "6px",
-  alignItems: "center"
-};
-
-const btnDetalle = {
-  border: "none",
-  background: "#273c75",
-  color: "white",
-  borderRadius: "6px",
-  cursor: "pointer",
-  padding: "4px 8px",
-  fontSize: "12px"
 };
 
 const modalOverlay = {
@@ -811,4 +1105,60 @@ const modalImagen = {
   height: "auto",
   display: "block",
   margin: "0 auto"
+};
+
+const recorteBox = {
+  marginTop: "15px",
+  padding: "14px",
+  background: "white",
+  border: "1px solid #dcdde1",
+  borderRadius: "12px"
+};
+
+const recorteHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  flexWrap: "wrap",
+  marginBottom: "12px"
+};
+
+const recorteImagenBox = {
+  position: "relative",
+  width: "min(520px, 100%)",
+  borderRadius: "12px",
+  overflow: "hidden",
+  border: "2px solid #273c75",
+  userSelect: "none",
+  touchAction: "none",
+  background: "#000"
+};
+
+const recorteImagen = {
+  width: "100%",
+  display: "block",
+  pointerEvents: "none"
+};
+
+const svgRecorte = {
+  position: "absolute",
+  inset: 0,
+  width: "100%",
+  height: "100%",
+  zIndex: 4,
+  pointerEvents: "none"
+};
+
+const puntoRecorte = {
+  position: "absolute",
+  width: "22px",
+  height: "22px",
+  borderRadius: "50%",
+  border: "3px solid white",
+  background: "#e84118",
+  transform: "translate(-50%, -50%)",
+  cursor: "grab",
+  zIndex: 5,
+  boxShadow: "0 1px 6px rgba(0,0,0,0.5)"
 };
