@@ -39,6 +39,10 @@ export default function Layout({ children }) {
             🦺 EPPS
           </button>
 
+          <button onClick={() => navigate("/guias")} style={btn}>
+            📦 Guías / Facturas
+          </button>
+
           <hr />
 
           <button onClick={cerrarSesion} style={btnDanger}>

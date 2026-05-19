@@ -54,6 +54,7 @@ import Cilindros from "./pages/Cilindros";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Maestros from "./pages/Maestros";
 import EPPS from "./pages/EPPS";
+import Guias from "./pages/Guias";
 
 function App() {
   return (
@@ -100,6 +101,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <EPPS />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/guias"
+            element={
+              <ProtectedRoute>
+                <Guias />
               </ProtectedRoute>
             }
           />

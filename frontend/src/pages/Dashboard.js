@@ -67,6 +67,18 @@ export default function Dashboard() {
             </button>
           </div>
 
+          <div style={card}>
+            <h4>📦 Guías / Facturas</h4>
+            <p>Solicitud Guías / Facturas</p>
+
+            <button
+              onClick={() => navigate("/guias")}
+              style={btn}
+            >
+              Ingresar
+            </button>
+          </div>
+
           {/* INVENTARIO (FUTURO) */}
           <div style={card}>
             <h4>📦 Inventario</h4>

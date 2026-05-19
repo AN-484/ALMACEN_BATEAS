@@ -53,6 +53,8 @@ const cilindrosRoutes = require("./routes/cilindros");
 const maestrosRoutes = require("./routes/maestros");
 const msdsRoutes = require("./routes/msds");
 const eppsRoutes = require("./routes/epps");
+//const r2TestRoutes = require("./routes/r2Test");   //pruebas R2, luego eliminar
+const guiasRoutes = require("./routes/guias");
 
 const app = express();
 
@@ -65,6 +67,8 @@ app.use("/api/cilindros", cilindrosRoutes);
 app.use("/api/maestros", maestrosRoutes);
 app.use("/api/msds", msdsRoutes);
 app.use("/api/epps", eppsRoutes);
+//app.use("/api/r2-test", r2TestRoutes); //pruebas R2, luego eliminar
+app.use("/api/guias", guiasRoutes);
 
 // TEST
 app.get("/", (req, res) => {
