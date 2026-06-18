@@ -258,6 +258,7 @@ function GenerarReservas() {
   const [reserva, setReserva] = useState("");
   const [itemsReserva, setItemsReserva] = useState([]);
   const [obsGeneral, setObsGeneral] = useState("");
+  const [copiado, setCopiado] = useState(false);
 
   const cargar = async () => {
     try {
@@ -412,6 +413,30 @@ function GenerarReservas() {
                 </table>
                 </div>
 
+            {detalle && (
+                <div style={usuarioCreadorBox}>
+                    <div>
+                        <div style={usuarioCreadorLabel}>Usuario creador</div>
+                        <div style={usuarioCreadorText}>
+                            {formatearUsuarioCreador(detalle)}
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={async () => {
+                          await copiarUsuarioCreador(detalle);
+                          setCopiado(true);
+                          setTimeout(() => setCopiado(false), 2000);
+                        }}
+                        style={btnCopiar}
+                    >
+                        {copiado ? "✓" : "Copiar"}
+                    </button>
+                </div>
+            )}
+
+            <label style={label}>N° de reserva</label>
+
             <input
               value={reserva}
               maxLength={10}
@@ -540,6 +565,39 @@ function formatearFecha(fecha) {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit"
+  });
+}
+
+function formatearUsuarioCreador(detalle) {
+  if (!detalle) return "-";
+
+  const dni = detalle.usuario_dni || "-";
+  const nombre = detalle.usuario_nombre || detalle.usuario || "Usuario desconocido";
+  const primerosNombres = nombre
+    .split(" ")
+    .slice(0, 2)
+    .join(" ");
+
+  return `${dni} ${primerosNombres}`;
+}
+
+function copiarUsuarioCreador(detalle) {
+  const texto = formatearUsuarioCreador(detalle);
+
+  if (!navigator.clipboard) {
+    return new Promise((resolve) => {
+      const textarea = document.createElement("textarea");
+      textarea.value = texto;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      resolve();
+    });
+  }
+
+  return navigator.clipboard.writeText(texto).catch(() => {
+    // silence errors; UX is indicated by button state
   });
 }
 
@@ -691,6 +749,40 @@ const inputReserva = {
   border: "1px solid #ccc",
   marginRight: "10px",
   marginBottom: "10px"
+};
+
+const usuarioCreadorBox = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "16px",
+  maxWidth: "300px",
+  background: "#f8f9fb",
+  border: "1px solid #cfd8dc",
+  borderRadius: "10px",
+  padding: "12px 16px",
+  margin: "20px 0"
+};
+
+const usuarioCreadorLabel = {
+  color: "#555",
+  fontSize: "12px",
+  marginBottom: "6px"
+};
+
+const usuarioCreadorText = {
+  fontSize: "14px",
+  color: "#222",
+  fontWeight: "600"
+};
+
+const btnCopiar = {
+  padding: "10px 14px",
+  border: "none",
+  borderRadius: "8px",
+  background: "#4a69bd",
+  color: "white",
+  cursor: "pointer"
 };
 
 const vacio = {

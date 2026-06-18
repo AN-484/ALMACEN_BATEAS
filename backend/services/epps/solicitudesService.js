@@ -15,22 +15,34 @@ async function mapearNombresUsuarios(solicitudes) {
 
   const { data, error } = await supabase
     .from("usuarios")
-    .select("codigo, nombre")
+    .select("codigo, nombre, dni")
     .in("codigo", codigos);
 
   if (error) throw error;
 
   const mapa = {};
   (data || []).forEach(u => {
-    mapa[u.codigo] = u.nombre;
+    mapa[u.codigo] = {
+      nombre: u.nombre,
+      dni: u.dni
+    };
   });
 
-  const resultado = lista.map(s => ({
-    ...s,
-    usuario_nombre: mapa[s.usuario] || s.usuario,
-    adm_aprueba_nombre: mapa[s.adm_aprueba] || s.adm_aprueba || null,
-    adm_genera_nombre: mapa[s.adm_genera] || s.adm_genera || null
-  }));
+  const resultado = lista.map(s => {
+    const usuario = mapa[s.usuario] || { nombre: s.usuario, dni: null };
+    const admAprueba = mapa[s.adm_aprueba] || { nombre: s.adm_aprueba || null, dni: null };
+    const admGenera = mapa[s.adm_genera] || { nombre: s.adm_genera || null, dni: null };
+
+    return {
+      ...s,
+      usuario_nombre: usuario.nombre,
+      usuario_dni: usuario.dni || null,
+      adm_aprueba_nombre: admAprueba.nombre,
+      adm_aprueba_dni: admAprueba.dni || null,
+      adm_genera_nombre: admGenera.nombre,
+      adm_genera_dni: admGenera.dni || null
+    };
+  });
 
   return Array.isArray(solicitudes) ? resultado : resultado[0];
 }
