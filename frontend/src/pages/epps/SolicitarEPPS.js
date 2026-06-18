@@ -90,14 +90,6 @@ export default function SolicitarEPPS({ onCreado }) {
               Agregue varios EPPS y ajuste las cantidades según la unidad.
             </p>
           </div>
-
-          <button
-            onClick={guardarSolicitud}
-            disabled={guardando}
-            style={guardando ? btnDisabled : btnGuardar}
-          >
-            {guardando ? "Guardando..." : "Enviar solicitud"}
-          </button>
         </div>
 
         <TablaItemsEPP
@@ -106,6 +98,14 @@ export default function SolicitarEPPS({ onCreado }) {
           onEliminar={eliminarItem}
           editable={true}
         />
+
+        <button
+          onClick={guardarSolicitud}
+          disabled={guardando}
+          style={guardando ? btnDisabledAbsoluto : btnGuardarAbsoluto}
+        >
+          {guardando ? "Guardando..." : "Enviar solicitud"}
+        </button>
       </div>
     </div>
   );
@@ -114,16 +114,13 @@ export default function SolicitarEPPS({ onCreado }) {
 const card = {
   background: "white",
   padding: "18px",
+  paddingBottom: "70px",
   borderRadius: "14px",
-  boxShadow: "0 0 10px rgba(0,0,0,0.1)"
+  boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+  position: "relative"
 };
 
 const header = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "15px",
-  flexWrap: "wrap",
-  alignItems: "center",
   marginBottom: "15px"
 };
 
@@ -144,6 +141,19 @@ const btnGuardar = {
 
 const btnDisabled = {
   ...btnGuardar,
+  background: "#718093",
+  cursor: "not-allowed"
+};
+
+const btnGuardarAbsoluto = {
+  ...btnGuardar,
+  position: "absolute",
+  right: 18,
+  bottom: 18
+};
+
+const btnDisabledAbsoluto = {
+  ...btnGuardarAbsoluto,
   background: "#718093",
   cursor: "not-allowed"
 };
