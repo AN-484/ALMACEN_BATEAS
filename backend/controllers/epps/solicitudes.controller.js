@@ -5,6 +5,7 @@ const {
   actualizarSolicitud,
   eliminarSolicitud
 } = require("../../services/epps/solicitudesService");
+const { marcarRecogido } = require("../../services/epps/solicitudesService");
 
 function usuarioActual(req) {
   return {
@@ -129,10 +130,31 @@ async function eliminar(req, res) {
   }
 }
 
+async function marcarRecogidoHandler(req, res) {
+  try {
+    const { codigo } = usuarioActual(req);
+
+    await marcarRecogido({ id_soli: req.params.id_soli, codigoUsuario: codigo });
+
+    res.json({
+      success: true,
+      message: "Solicitud marcada como recogida"
+    });
+  } catch (error) {
+    console.error("Error marcar recogido EPPS:", error);
+
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.message || "Error al marcar recogido"
+    });
+  }
+}
+
 module.exports = {
   crear,
   misSolicitudes,
   detalle,
   actualizar,
-  eliminar
+  eliminar,
+  marcarRecogido: marcarRecogidoHandler
 };

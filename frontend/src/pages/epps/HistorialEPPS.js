@@ -272,11 +272,12 @@ export default function HistorialEPPS() {
         <div style={grid}>
             {solicitudes.map(s => (
             <TarjetaSolicitud
-                key={s.id_soli}
-                solicitud={s}
-                onVer={verDetalle}
-                onEditar={editar}
-                onEliminar={eliminar}
+              key={s.id_soli}
+              solicitud={s}
+              onVer={verDetalle}
+              onEditar={editar}
+              onEliminar={eliminar}
+              onRecogido={cargar}
             />
             ))}
         </div>

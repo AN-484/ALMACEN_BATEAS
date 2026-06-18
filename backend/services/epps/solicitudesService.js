@@ -151,6 +151,10 @@ async function listarMisSolicitudes(codigoUsuario) {
       *,
       estado_info:stado_soli_epp (
         descripcion
+      ),
+      items:items_epps_solic (
+        id_item,
+        cant_ejecut
       )
     `)
     .eq("usuario", codigoUsuario)
@@ -159,6 +163,52 @@ async function listarMisSolicitudes(codigoUsuario) {
   if (error) throw error;
 
   return await mapearNombresUsuarios(data || []);
+}
+
+async function marcarRecogido({ id_soli, codigoUsuario }) {
+  const solicitud = await obtenerSolicitud(id_soli);
+
+  if (!solicitud) {
+    const error = new Error("Solicitud no encontrada");
+    error.status = 404;
+    throw error;
+  }
+
+  if (solicitud.usuario !== codigoUsuario) {
+    const error = new Error("Solo el creador puede marcar la solicitud como recogida");
+    error.status = 403;
+    throw error;
+  }
+
+  if (solicitud.estado !== "S3") {
+    const error = new Error("La solicitud no está en estado terminado");
+    error.status = 400;
+    throw error;
+  }
+
+  const fechaBase = solicitud.fecha_generado || solicitud.fecha_aprobado || solicitud.fecha_solicitada;
+
+  if (fechaBase) {
+    const diff = Date.now() - new Date(fechaBase).getTime();
+    const dias = diff / (1000 * 60 * 60 * 24);
+
+    if (dias > 3) {
+      const error = new Error("Periodo para marcar como recogido expirado");
+      error.status = 400;
+      throw error;
+    }
+  }
+
+  const { error } = await supabase
+    .from("items_epps_solic")
+    .update({ cant_ejecut: 1 })
+    .eq("id_soli", id_soli);
+
+  if (error) throw error;
+
+  return {
+    mensaje: "Solicitud marcada como recogida"
+  };
 }
 
 async function actualizarSolicitud({ id_soli, codigoUsuario, items }) {
@@ -243,6 +293,7 @@ module.exports = {
   obtenerDetalleSolicitud,
   crearSolicitud,
   listarMisSolicitudes,
+  marcarRecogido,
   actualizarSolicitud,
   eliminarSolicitud,
   mapearNombresUsuarios
