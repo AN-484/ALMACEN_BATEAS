@@ -70,7 +70,8 @@ function AprobarSolicitudes() {
             cant_aprobada: item.cantidad,
             descripcion: item.epp?.descripcion,
             cantidad: item.cantidad,
-            unidad: item.epp?.unidad
+            unidad: item.epp?.unidad,
+            ultima_fecha_confirmada: item.ultima_fecha_confirmada || null
           }))
         );
         setObsAprobada("");
@@ -189,6 +190,7 @@ function AprobarSolicitudes() {
                   <tr>
                     <th style={th}>EPP</th>
                     <th style={th}>Solicitado</th>
+                    <th style={th}>Última confirmación</th>
                     <th style={th}>Aprobado</th>
                     <th style={th}>Cantidad aprobada</th>
                   </tr>
@@ -199,6 +201,13 @@ function AprobarSolicitudes() {
                     <tr key={item.id_item}>
                       <td style={td}>{item.descripcion}</td>
                       <td style={td}>{item.cantidad} {item.unidad}</td>
+                      <td style={td}>
+                        <span style={fechaHistorial}>
+                          {item.ultima_fecha_confirmada
+                            ? formatearFecha(item.ultima_fecha_confirmada)
+                            : "sin registro"}
+                        </span>
+                      </td>
                       <td style={td}>
                         <select
                           value={item.aprobado}
@@ -823,6 +832,11 @@ const sapCell = {
   alignItems: "center",
   gap: "8px",
   flexWrap: "wrap"
+};
+
+const fechaHistorial = {
+  color: "#2f5d9b",
+  fontWeight: "600"
 };
 
 const sapText = {

@@ -104,11 +104,49 @@ async function obtenerDetalleSolicitud(id_soli) {
 
   if (errorItems) throw errorItems;
 
+  const eppIds = Array.from(new Set((items || []).map(item => item.id_epp).filter(Boolean)));
+  let ultimasConfirmaciones = {};
+
+  if (eppIds.length > 0) {
+    const { data: historial, error: errorHistorial } = await supabase
+      .from("items_epps_solic")
+      .select(`
+        id_epp,
+        solicitud:solicitudes_epps (
+          id_soli,
+          usuario,
+          fecha_solicitada
+        )
+      `)
+      .in("id_epp", eppIds)
+      .eq("cant_ejecut", 1)
+      .neq("id_soli", id_soli);
+
+    if (errorHistorial) throw errorHistorial;
+
+    (historial || [])
+      .filter(entry => entry.solicitud?.usuario === solicitud.usuario)
+      .forEach(entry => {
+        const fecha = entry.solicitud?.fecha_solicitada;
+        if (!fecha) return;
+
+        const actual = ultimasConfirmaciones[entry.id_epp];
+        if (!actual || new Date(fecha) > new Date(actual)) {
+          ultimasConfirmaciones[entry.id_epp] = fecha;
+        }
+      });
+  }
+
+  const itemsConUltima = (items || []).map(item => ({
+    ...item,
+    ultima_fecha_confirmada: ultimasConfirmaciones[item.id_epp] || null
+  }));
+
   const solicitudConNombre = await mapearNombresUsuarios(solicitud);
 
     return {
     ...solicitudConNombre,
-    items: items || []
+    items: itemsConUltima
     };
 }
 
