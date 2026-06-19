@@ -259,6 +259,7 @@ function GenerarReservas() {
   const [itemsReserva, setItemsReserva] = useState([]);
   const [obsGeneral, setObsGeneral] = useState("");
   const [copiado, setCopiado] = useState(false);
+  const [copiadoSap, setCopiadoSap] = useState(null);
 
   const cargar = async () => {
     try {
@@ -391,7 +392,25 @@ function GenerarReservas() {
                     <tbody>
                     {itemsReserva.map(item => (
                         <tr key={item.id_item}>
-                        <td style={td}>{item.sap}</td>
+                        <td style={td}>
+                          <div style={sapCell}>
+                            <span style={sapText}>{item.sap}</span>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const sapValue = item.sap;
+                                await copiarTexto(sapValue);
+                                setCopiadoSap(sapValue);
+                                setTimeout(() => {
+                                  setCopiadoSap((prev) => (prev === sapValue ? null : prev));
+                                }, 2000);
+                              }}
+                              style={btnCopiarPequeno}
+                            >
+                              {copiadoSap === item.sap ? "✓" : "Copiar"}
+                            </button>
+                          </div>
+                        </td>
                         <td style={td}>{item.descripcion}</td>
                         <td style={td}>{item.unidad}</td>
                         <td style={td}>{item.cant_aprobada}</td>
@@ -584,6 +603,10 @@ function formatearUsuarioCreador(detalle) {
 function copiarUsuarioCreador(detalle) {
   const texto = formatearUsuarioCreador(detalle);
 
+  return copiarTexto(texto);
+}
+
+function copiarTexto(texto) {
   if (!navigator.clipboard) {
     return new Promise((resolve) => {
       const textarea = document.createElement("textarea");
@@ -783,6 +806,28 @@ const btnCopiar = {
   background: "#4a69bd",
   color: "white",
   cursor: "pointer"
+};
+
+const btnCopiarPequeno = {
+  padding: "8px 10px",
+  border: "none",
+  borderRadius: "8px",
+  background: "#4a69bd",
+  color: "white",
+  cursor: "pointer",
+  fontSize: "12px"
+};
+
+const sapCell = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  flexWrap: "wrap"
+};
+
+const sapText = {
+  fontSize: "14px",
+  fontWeight: "600"
 };
 
 const vacio = {
