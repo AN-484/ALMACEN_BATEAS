@@ -55,6 +55,10 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Maestros from "./pages/Maestros";
 import EPPS from "./pages/EPPS";
 import Guias from "./pages/Guias";
+import Leasing from "./pages/leasing/Leasing";
+import Ingresos101 from "./pages/leasing/Ingresos101";
+import Salidas201 from "./pages/leasing/Salidas201";
+import Modificaciones301 from "./pages/leasing/Modificaciones301";
 
 function App() {
   return (
@@ -110,6 +114,42 @@ function App() {
             element={
               <ProtectedRoute>
                 <Guias />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/leasing"
+            element={
+              <ProtectedRoute>
+                <Leasing />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/leasing/ingresos"
+            element={
+              <ProtectedRoute>
+                <Ingresos101 />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/leasing/salidas"
+            element={
+              <ProtectedRoute>
+                <Salidas201 />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/leasing/modificaciones"
+            element={
+              <ProtectedRoute>
+                <Modificaciones301 />
               </ProtectedRoute>
             }
           />

@@ -43,6 +43,10 @@ export default function Layout({ children }) {
             📦 Guías / Facturas
           </button>
 
+          <button onClick={() => navigate("/leasing")} style={btn}>
+            💳 LeaseDesk
+          </button>
+
           <hr />
 
           <button onClick={cerrarSesion} style={btnDanger}>

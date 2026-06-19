@@ -79,6 +79,18 @@ export default function Dashboard() {
             </button>
           </div>
 
+          <div style={card}>
+            <h4>💳 LEASING</h4>
+            <p>Operaciones de leasing (Ingresos/Salidas/Modificaciones)</p>
+
+            <button
+              onClick={() => navigate("/leasing")}
+              style={btn}
+            >
+              Ingresar
+            </button>
+          </div>
+
           {/* INVENTARIO (FUTURO) */}
           <div style={card}>
             <h4>📦 Inventario</h4>
