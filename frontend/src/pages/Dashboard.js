@@ -56,7 +56,7 @@ export default function Dashboard() {
           </div>
 
           <div style={card}>
-            <h4>🦺 EPPS</h4>
+            <h4>🦺 MEPPs</h4>
             <p>Solicitud EPPS</p>
 
             <button

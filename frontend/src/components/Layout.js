@@ -36,7 +36,7 @@ export default function Layout({ children }) {
           </button>
 
           <button onClick={() => navigate("/epps")} style={btn}>
-            🦺 EPPS
+            🦺 MEPPs
           </button>
 
           <button onClick={() => navigate("/guias")} style={btn}>

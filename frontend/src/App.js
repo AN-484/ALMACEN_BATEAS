@@ -100,7 +100,7 @@ function App() {
             path="/epps"
             element={
               <ProtectedRoute>
-                <EPPS />
+                < EPPS />
               </ProtectedRoute>
             }
           />
