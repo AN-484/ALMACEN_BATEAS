@@ -33,6 +33,11 @@ export default function Leasing({ funcionInicial }) {
   const [busquedaMaterial, setBusquedaMaterial] = useState("");
   const [resultadosMaterial, setResultadosMaterial] = useState([]);
   const [materialSalida, setMaterialSalida] = useState(null);
+  const [buscandoMovimiento, setBuscandoMovimiento] = useState(false);
+  const [busquedaMovimiento, setBusquedaMovimiento] = useState("");
+  const [tipoBusquedaMovimiento, setTipoBusquedaMovimiento] = useState("101");
+  const [resultadosMovimiento, setResultadosMovimiento] = useState([]);
+  const [movimientoOriginal, setMovimientoOriginal] = useState(null);
 
   const [material, setMaterial] = useState({
     codigo: "",
@@ -53,6 +58,24 @@ export default function Leasing({ funcionInicial }) {
   const [movimientoSalida, setMovimientoSalida] = useState({
     date_movi: hoyISO(),
     ubic_destino: "",
+    destinatario: "",
+    obs: ""
+  });
+
+  const [busquedaEliminacion, setBusquedaEliminacion] = useState("");
+  const [tipoBusquedaEliminacion, setTipoBusquedaEliminacion] = useState("101");
+  const [buscandoMovimientoElim, setBuscandoMovimientoElim] = useState(false);
+  const [resultadosEliminacion, setResultadosEliminacion] = useState([]);
+  const [movimientoAEliminar, setMovimientoAEliminar] = useState(null);
+
+  const [movimientoModificacion, setMovimientoModificacion] = useState({
+    date_modif: hoyISO(),
+    date_movi: hoyISO(),
+    date_crea: "",
+    tipo_movimiento: "",
+    guia: "",
+    ubic_destino: "",
+    placa: "",
     destinatario: "",
     obs: ""
   });
@@ -99,6 +122,10 @@ export default function Leasing({ funcionInicial }) {
     setMovimientoSalida((prev) => ({ ...prev, [campo]: valor }));
   };
 
+  const actualizarMovimientoModificacion = (campo, valor) => {
+    setMovimientoModificacion((prev) => ({ ...prev, [campo]: valor }));
+  };
+
   const buscarMateriales = async (texto) => {
     try {
       const valor = String(texto || "").trim();
@@ -130,6 +157,49 @@ export default function Leasing({ funcionInicial }) {
       ...prev,
       ubic_destino: item.ubicacion || ""
     }));
+  };
+
+  const buscarMovimientos = async (texto, tipo = tipoBusquedaMovimiento) => {
+    try {
+      const valor = String(texto || "").trim();
+      setBusquedaMovimiento(texto);
+
+      if (valor.length < 2) {
+        setResultadosMovimiento([]);
+        return;
+      }
+
+      setBuscandoMovimiento(true);
+      const res = await apiGet(
+        `/api/leasing/movimientos?q=${encodeURIComponent(valor)}&tipo=${encodeURIComponent(tipo)}`
+      );
+
+      if (res.success) {
+        setResultadosMovimiento(res.data || []);
+      }
+    } catch (error) {
+      console.error(error);
+      setResultadosMovimiento([]);
+    } finally {
+      setBuscandoMovimiento(false);
+    }
+  };
+
+  const seleccionarMovimiento = (item) => {
+    setMovimientoOriginal(item);
+    setBusquedaMovimiento(`${item.material?.codigo || ""} - ${item.material?.descripcion || ""}`);
+    setResultadosMovimiento([]);
+    setMovimientoModificacion({
+      date_modif: hoyISO(),
+      date_movi: item.date_movi || hoyISO(),
+      date_crea: item.date_crea || "",
+      tipo_movimiento: String(item.tipo_movimiento || ""),
+      guia: item.guia || "",
+      ubic_destino: item.ubic_destino || "",
+      placa: item.placa ? String(item.placa) : "",
+      destinatario: item.destinatario || "",
+      obs: item.obs || ""
+    });
   };
 
   const guardarIngreso = async () => {
@@ -264,6 +334,147 @@ export default function Leasing({ funcionInicial }) {
     }
   };
 
+  const buscarMovimientosElim = async (texto, tipo = tipoBusquedaEliminacion) => {
+    try {
+      const valor = String(texto || "").trim();
+      setBusquedaEliminacion(texto);
+
+      if (valor.length < 2) {
+        setResultadosEliminacion([]);
+        return;
+      }
+
+      setBuscandoMovimientoElim(true);
+      const res = await apiGet(
+        `/api/leasing/movimientos?q=${encodeURIComponent(valor)}&tipo=${encodeURIComponent(tipo)}`
+      );
+
+      if (res.success) {
+        setResultadosEliminacion(res.data || []);
+      }
+    } catch (error) {
+      console.error(error);
+      setResultadosEliminacion([]);
+    } finally {
+      setBuscandoMovimientoElim(false);
+    }
+  };
+
+  const seleccionarMovimientoElim = (item) => {
+    setMovimientoAEliminar(item);
+    setBusquedaEliminacion(`${item.material?.codigo || ""} - ${item.material?.descripcion || ""}`);
+    setResultadosEliminacion([]);
+  };
+
+  const ejecutarEliminacion = async () => {
+    try {
+      if (!esAdmin) {
+        alert("Solo los administradores pueden eliminar movimientos.");
+        return;
+      }
+
+      if (!movimientoAEliminar?.id) {
+        alert("Debe buscar y seleccionar un movimiento.");
+        return;
+      }
+
+      const confirmar = window.confirm(
+        `¿Confirma la eliminación del movimiento ${movimientoAEliminar.id}?\n` +
+        `Material: ${movimientoAEliminar.material?.descripcion || movimientoAEliminar.codigo_material}\n` +
+        `Tipo: ${movimientoAEliminar.tipo_movimiento} | Fecha: ${movimientoAEliminar.date_movi}`
+      );
+
+      if (!confirmar) return;
+
+      setGuardando(true);
+
+      const res = await apiPost("/api/leasing/eliminaciones", {
+        id_movimiento: movimientoAEliminar.id
+      });
+
+      if (res.success) {
+        alert(
+          `Movimiento ${res.data.movimiento.id} eliminado.\n` +
+          `Fecha eliminación: ${res.data.movimiento.date_elim}`
+        );
+        setMovimientoAEliminar(null);
+        setBusquedaEliminacion("");
+        setResultadosEliminacion([]);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "No se pudo eliminar el movimiento");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const guardarModificacion = async () => {
+    try {
+      if (!funcionActiva || funcionActiva.codigo !== 301) {
+        alert("Seleccione la función 301 para registrar una modificación.");
+        return;
+      }
+
+      if (!movimientoOriginal?.id) {
+        alert("Debe buscar y seleccionar un movimiento.");
+        return;
+      }
+
+      if (!movimientoModificacion.date_movi) {
+        alert("La fecha de movimiento es obligatoria.");
+        return;
+      }
+
+      if (movimientoModificacion.placa && movimientoModificacion.placa.length !== 9) {
+        alert("La placa debe tener 9 dígitos.");
+        return;
+      }
+
+      setGuardando(true);
+
+      const payload = {
+        id_movimiento: movimientoOriginal.id,
+        movimiento: {
+          date_movi: movimientoModificacion.date_movi,
+          guia: movimientoModificacion.guia.trim() || null,
+          ubic_destino: movimientoModificacion.ubic_destino.trim().toUpperCase() || null,
+          placa: movimientoModificacion.placa ? Number(movimientoModificacion.placa) : null,
+          destinatario:
+            Number(movimientoOriginal.tipo_movimiento) === 201
+              ? movimientoModificacion.destinatario.trim() || null
+              : null,
+          obs: movimientoModificacion.obs.trim() || null
+        }
+      };
+
+      const res = await apiPost("/api/leasing/modificaciones", payload);
+
+      if (res.success) {
+        alert(`Modificación registrada correctamente. ${res.data.modificacion.id}`);
+        setMovimientoOriginal(null);
+        setBusquedaMovimiento("");
+        setResultadosMovimiento([]);
+        setMovimientoModificacion({
+          date_modif: hoyISO(),
+          date_movi: hoyISO(),
+          date_crea: "",
+          tipo_movimiento: "",
+          guia: "",
+          ubic_destino: "",
+          placa: "",
+          destinatario: "",
+          obs: ""
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "No se pudo guardar la modificación");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   return (
     <Layout>
       <div style={page}>
@@ -277,6 +488,10 @@ export default function Leasing({ funcionInicial }) {
 
           <button onClick={() => navigate("/dashboard")} style={btnSecondary}>
             Volver al dashboard
+          </button>
+
+          <button onClick={() => navigate("/leasing/historial")} style={btnSecondary}>
+            📋 Historial
           </button>
         </div>
 
@@ -578,14 +793,271 @@ export default function Leasing({ funcionInicial }) {
               {guardando ? "Guardando salida..." : "Registrar salida"}
             </button>
           </section>
+        ) : funcionActiva?.codigo === 301 ? (
+          <section style={sectionCard}>
+            <h3 style={sectionTitle}>2. Modificación de movimientos (301)</h3>
+            <p style={sectionHint}>
+              Busque el movimiento por material y tipo 101/201. Al guardar, se crea
+              un registro en <b>modif_movim</b> y se actualiza el movimiento original.
+            </p>
+
+            <div style={searchPanel}>
+              <div style={grid2}>
+                <Campo label="Buscar material por código o nombre">
+                  <input
+                    value={busquedaMovimiento}
+                    onChange={(e) => buscarMovimientos(e.target.value.toUpperCase())}
+                    placeholder="Escriba código o descripción"
+                    style={input}
+                  />
+                </Campo>
+
+                <Campo label="Tipo movimiento">
+                  <select
+                    value={tipoBusquedaMovimiento}
+                    onChange={(e) => {
+                      setTipoBusquedaMovimiento(e.target.value);
+                      if (busquedaMovimiento.trim().length >= 2) {
+                        buscarMovimientos(busquedaMovimiento, e.target.value);
+                      }
+                    }}
+                    style={input}
+                  >
+                    <option value="101">101 - INGRESO</option>
+                    <option value="201">201 - SALIDA</option>
+                  </select>
+                </Campo>
+              </div>
+
+              {buscandoMovimiento ? <p style={helperText}>Buscando movimientos...</p> : null}
+
+              {resultadosMovimiento.length > 0 ? (
+                <div style={resultadosBox}>
+                  {resultadosMovimiento.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => seleccionarMovimiento(item)}
+                      style={resultadoBtn}
+                    >
+                      <b>{item.material?.codigo || item.codigo_material}</b> - {item.material?.descripcion || "Sin descripción"}
+                      <span style={resultadoMeta}>
+                        Mov: {item.id} | Tipo: {item.tipo_movimiento} | Fecha: {item.date_movi}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div style={divider}></div>
+
+            <div style={grid2}>
+              <Campo label="Fecha modificación">
+                <input
+                  value={movimientoModificacion.date_modif}
+                  readOnly
+                  style={inputReadonly}
+                />
+              </Campo>
+
+              <Campo label="Código material">
+                <input
+                  value={movimientoOriginal?.codigo_material || ""}
+                  readOnly
+                  style={inputReadonly}
+                />
+              </Campo>
+
+              <Campo label="Fecha movimiento">
+                <input
+                  type="date"
+                  value={movimientoModificacion.date_movi}
+                  onChange={(e) => actualizarMovimientoModificacion("date_movi", e.target.value)}
+                  style={input}
+                />
+              </Campo>
+
+              <Campo label="Fecha creación">
+                <input
+                  value={movimientoModificacion.date_crea}
+                  readOnly
+                  style={inputReadonly}
+                />
+              </Campo>
+
+              <Campo label="Tipo movimiento">
+                <input
+                  value={movimientoModificacion.tipo_movimiento}
+                  readOnly
+                  style={inputReadonly}
+                />
+              </Campo>
+
+              <Campo label="Guía">
+                <input
+                  value={movimientoModificacion.guia}
+                  onChange={(e) => actualizarMovimientoModificacion("guia", e.target.value.toUpperCase())}
+                  style={input}
+                />
+              </Campo>
+
+              <Campo label="Ubic / Destino">
+                <input
+                  value={movimientoModificacion.ubic_destino}
+                  onChange={(e) => actualizarMovimientoModificacion("ubic_destino", e.target.value.toUpperCase())}
+                  style={input}
+                />
+              </Campo>
+
+              <Campo label="Placa (9 dígitos)">
+                <input
+                  value={movimientoModificacion.placa}
+                  onChange={(e) => actualizarMovimientoModificacion("placa", soloNumerosLimitado(e.target.value, 9))}
+                  maxLength={9}
+                  style={input}
+                />
+              </Campo>
+
+              <Campo label="Responsable">
+                <input
+                  value={`${localStorage.getItem("codigo") || ""} - ${localStorage.getItem("nombre") || "Usuario"}`}
+                  readOnly
+                  style={inputReadonly}
+                />
+              </Campo>
+
+              {Number(movimientoOriginal?.tipo_movimiento) === 201 ? (
+                <Campo label="Destinatario">
+                  <input
+                    value={movimientoModificacion.destinatario}
+                    onChange={(e) => actualizarMovimientoModificacion("destinatario", e.target.value.toUpperCase())}
+                    style={input}
+                  />
+                </Campo>
+              ) : null}
+
+              <Campo label="Observaciones">
+                <textarea
+                  value={movimientoModificacion.obs}
+                  onChange={(e) => actualizarMovimientoModificacion("obs", e.target.value)}
+                  style={textarea}
+                  rows={3}
+                />
+              </Campo>
+            </div>
+
+            <div style={summaryBox}>
+              <div><b>ID movimiento:</b> {movimientoOriginal?.id || "-"}</div>
+              <div><b>ID modificación:</b> automático en modif_movim</div>
+              <div><b>Edición movimiento:</b> se marca `edit = 1` e `id_modif = nuevo MM`</div>
+            </div>
+
+            <button onClick={guardarModificacion} disabled={guardando} style={guardando ? btnDisabled : btnPrimary}>
+              {guardando ? "Guardando modificación..." : "Registrar modificación"}
+            </button>
+          </section>
+        ) : funcionActiva?.codigo === 401 ? (
+          <section style={sectionCard}>
+            <h3 style={{ ...sectionTitle, color: "#c0392b" }}>2. Eliminación de movimientos (401) — Solo administradores</h3>
+            <p style={sectionHint}>
+              Busque el movimiento por material y tipo 101/201. El movimiento se marcará
+              como eliminado (<b>estado = 0</b>) y se registrará la fecha de eliminación automáticamente.
+            </p>
+
+            {!esAdmin ? (
+              <div style={alertBox}>No tiene permisos para esta función.</div>
+            ) : (
+              <>
+                <div style={searchPanel}>
+                  <div style={grid2}>
+                    <Campo label="Buscar material por código o nombre">
+                      <input
+                        value={busquedaEliminacion}
+                        onChange={(e) => buscarMovimientosElim(e.target.value.toUpperCase())}
+                        placeholder="Escriba código o descripción"
+                        style={input}
+                      />
+                    </Campo>
+
+                    <Campo label="Tipo movimiento">
+                      <select
+                        value={tipoBusquedaEliminacion}
+                        onChange={(e) => {
+                          setTipoBusquedaEliminacion(e.target.value);
+                          if (busquedaEliminacion.trim().length >= 2) {
+                            buscarMovimientosElim(busquedaEliminacion, e.target.value);
+                          }
+                        }}
+                        style={input}
+                      >
+                        <option value="101">101 - INGRESO</option>
+                        <option value="201">201 - SALIDA</option>
+                      </select>
+                    </Campo>
+                  </div>
+
+                  {buscandoMovimientoElim ? <p style={helperText}>Buscando movimientos...</p> : null}
+
+                  {resultadosEliminacion.length > 0 ? (
+                    <div style={resultadosBox}>
+                      {resultadosEliminacion.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => seleccionarMovimientoElim(item)}
+                          style={resultadoBtn}
+                        >
+                          <b>{item.material?.codigo || item.codigo_material}</b> - {item.material?.descripcion || "Sin descripción"}
+                          <span style={resultadoMeta}>
+                            Mov: {item.id} | Tipo: {item.tipo_movimiento} | Fecha: {item.date_movi}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {movimientoAEliminar ? (
+                  <>
+                    <div style={divider}></div>
+
+                    <div style={{ ...summaryBox, background: "#fdf2f2", border: "1px solid #f5c6cb" }}>
+                      <div><b>Movimiento:</b> {movimientoAEliminar.id}</div>
+                      <div><b>Material:</b> {movimientoAEliminar.material?.descripcion || movimientoAEliminar.codigo_material}</div>
+                      <div><b>Tipo:</b> {movimientoAEliminar.tipo_movimiento}</div>
+                      <div><b>Fecha movimiento:</b> {movimientoAEliminar.date_movi}</div>
+                      <div><b>Fecha eliminación:</b> automática (hoy)</div>
+                      <div><b>Estado resultante:</b> 0 (eliminado)</div>
+                    </div>
+
+                    <button
+                      onClick={ejecutarEliminacion}
+                      disabled={guardando}
+                      style={guardando ? btnDisabled : btnDanger}
+                    >
+                      {guardando ? "Eliminando..." : "Confirmar eliminación"}
+                    </button>
+                  </>
+                ) : null}
+
+                <div style={divider}></div>
+
+                <div style={summaryBox}>
+                  <div>Para modificar o eliminar materiales directamente, use la gestión de materiales:</div>
+                  <button
+                    onClick={() => navigate("/leasing/admin-materiales")}
+                    style={{ ...btnPrimary, marginTop: 8, display: "inline-block" }}
+                  >
+                    Gestión de Materiales (Admin)
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
         ) : funcionActiva ? (
           <section style={sectionCard}>
-            <h3 style={sectionTitle}>Función en preparación</h3>
-            <p style={sectionHint}>
-              La ventana única ya está lista. Por ahora el ingreso 101 es la función
-              operativa. Salida 201, modificación 301 y eliminación 401 se conectarán
-              sobre el mismo patrón.
-            </p>
+            <h3 style={sectionTitle}>Función no reconocida</h3>
           </section>
         ) : (
           <section style={sectionCard}>
@@ -788,6 +1260,24 @@ const btnDisabled = {
   ...btnPrimary,
   background: "#7f8c9b",
   cursor: "not-allowed"
+};
+
+const btnDanger = {
+  padding: "12px 16px",
+  border: "none",
+  borderRadius: "10px",
+  background: "#c0392b",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: 700
+};
+
+const alertBox = {
+  padding: "12px 14px",
+  borderRadius: "10px",
+  background: "#fdf2f2",
+  color: "#c0392b",
+  fontWeight: 600
 };
 
 const btnSecondary = {

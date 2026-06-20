@@ -55,6 +55,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import EPPS from "./pages/EPPS";
 import Guias from "./pages/Guias";
 import Leasing from "./pages/leasing/Leasing";
+import AdminMaterialesLeasing from "./pages/leasing/AdminMaterialesLeasing";
+import HistorialLeasing from "./pages/leasing/HistorialLeasing";
 
 function App() {
   return (
@@ -155,6 +157,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <Leasing funcionInicial="401" />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/leasing/admin-materiales"
+            element={
+              <ProtectedRoute>
+                <AdminMaterialesLeasing />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/leasing/historial"
+            element={
+              <ProtectedRoute>
+                <HistorialLeasing />
               </ProtectedRoute>
             }
           />
