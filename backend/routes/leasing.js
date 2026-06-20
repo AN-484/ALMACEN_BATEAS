@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const supabaseLeasing = require("../services/supabaseLeasingClient");
+const supabase = require("../services/supabaseClient");
 
 function esNumeroValido(valor, longitud) {
   if (valor === null || valor === undefined || valor === "") {
@@ -20,6 +21,15 @@ function valorIgualAnterior(actual, nuevo) {
   const actualNormalizado = actual === undefined ? null : actual;
   const nuevoNormalizado = nuevo === undefined ? null : nuevo;
   return actualNormalizado === nuevoNormalizado;
+}
+
+function extraerCodigoResponsable(responsable) {
+  const valor = String(responsable || "").trim();
+  if (!valor) return null;
+
+  // Acepta formatos: "P014" o "P014 - NOMBRE".
+  const match = valor.match(/^([A-Za-z0-9]+)\s*-?.*$/);
+  return match ? match[1].toUpperCase() : null;
 }
 
 router.get("/materiales", async (req, res) => {
@@ -131,10 +141,42 @@ router.get("/movimientos", async (req, res) => {
 
     const materialesPorId = new Map((materiales || []).map((item) => [item.id, item]));
 
-    const data = (movimientos || []).map((movimiento) => ({
-      ...movimiento,
-      material: materialesPorId.get(movimiento.codigo_material) || null
-    }));
+    const codigosResponsables = Array.from(
+      new Set(
+        (movimientos || [])
+          .map((movimiento) => extraerCodigoResponsable(movimiento.responsable))
+          .filter(Boolean)
+      )
+    );
+
+    const nombresPorCodigo = new Map();
+    if (codigosResponsables.length > 0) {
+      const { data: usuarios, error: errorUsuarios } = await supabase
+        .from("usuarios")
+        .select("codigo, nombre")
+        .in("codigo", codigosResponsables);
+
+      if (errorUsuarios) {
+        console.error("Error obteniendo nombres de responsables LEASING:", errorUsuarios);
+      } else {
+        (usuarios || []).forEach((usuario) => {
+          nombresPorCodigo.set(String(usuario.codigo || "").toUpperCase(), usuario.nombre || null);
+        });
+      }
+    }
+
+    const data = (movimientos || []).map((movimiento) => {
+      const codigoResponsable = extraerCodigoResponsable(movimiento.responsable);
+      const responsableNombre = codigoResponsable
+        ? nombresPorCodigo.get(codigoResponsable) || null
+        : null;
+
+      return {
+        ...movimiento,
+        responsable_nombre: responsableNombre,
+        material: materialesPorId.get(movimiento.codigo_material) || null
+      };
+    });
 
     return res.json({
       success: true,
@@ -621,6 +663,45 @@ router.post("/eliminaciones", async (req, res) => {
 // ──────────────────────────────────────────────
 // HISTORIAL
 // ──────────────────────────────────────────────
+
+router.get("/estado/resumen", async (req, res) => {
+  try {
+    const { data, error } = await supabaseLeasing
+      .from("estado")
+      .select("mov");
+
+    if (error) {
+      throw error;
+    }
+
+    const resumen = {
+      total: 0,
+      ingresos: 0,
+      salidas: 0,
+      otros: 0
+    };
+
+    for (const row of data || []) {
+      resumen.total += 1;
+
+      if (Number(row.mov) === 101) {
+        resumen.ingresos += 1;
+      } else if (Number(row.mov) === 201) {
+        resumen.salidas += 1;
+      } else {
+        resumen.otros += 1;
+      }
+    }
+
+    return res.json({
+      success: true,
+      data: resumen
+    });
+  } catch (error) {
+    console.error("Error resumen estado leasing:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 router.get("/historial/materiales", async (req, res) => {
   try {

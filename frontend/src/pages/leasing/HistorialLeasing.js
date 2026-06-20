@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
+import { LeasingInlineLoading, LeasingPageLoading } from "../../components/LeasingLoading";
 import { apiGet } from "../../services/api";
 
 // ─────────────────────────────────────────────────────────────────
@@ -59,7 +61,9 @@ const TIPO_COLOR = { 101: "#2980b9", 201: "#27ae60", 301: "#f39c12", 401: "#c039
 // MAIN
 // ─────────────────────────────────────────────────────────────────
 export default function HistorialLeasing() {
+  const navigate = useNavigate();
   const esAdmin = String(localStorage.getItem("puede_datos")) === "SI";
+  const [cargandoPantalla, setCargandoPantalla] = useState(true);
 
   const TABS = [
     { id: "materiales", label: "Materiales" },
@@ -69,14 +73,33 @@ export default function HistorialLeasing() {
 
   const [tab, setTab] = useState("materiales");
 
+  useEffect(() => {
+    const timer = setTimeout(() => setCargandoPantalla(false), 220);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <Layout>
       <div style={page}>
+        {cargandoPantalla ? <LeasingPageLoading message="Cargando historial de LeaseDesk..." /> : null}
+
+        {!cargandoPantalla ? (
+          <>
         <div style={headerCard}>
           <h2 style={{ margin: 0 }}>Historial LeaseDesk</h2>
           <p style={{ margin: "6px 0 0", color: "rgba(255,255,255,0.8)" }}>
             Consulta de materiales, movimientos{esAdmin ? " y modificaciones" : ""}.
           </p>
+
+          <div style={headerActions}>
+            <button onClick={() => navigate("/leasing")} style={btnSecondary}>
+              ↩ Estados generales
+            </button>
+
+            <button onClick={() => navigate("/leasing/movimientos")} style={btnSecondary}>
+              🔁 Movimientos
+            </button>
+          </div>
         </div>
 
         <div style={tabsBar}>
@@ -94,6 +117,8 @@ export default function HistorialLeasing() {
         {tab === "materiales" && <TabMateriales esAdmin={esAdmin} />}
         {tab === "movimientos" && <TabMovimientos esAdmin={esAdmin} />}
         {tab === "modificaciones" && esAdmin && <TabModificaciones />}
+          </>
+        ) : null}
       </div>
     </Layout>
   );
@@ -159,7 +184,7 @@ function TabMateriales({ esAdmin }) {
       </div>
 
       {cargando ? (
-        <p style={helperText}>Cargando...</p>
+        <p style={helperText}><LeasingInlineLoading message="Cargando..." /></p>
       ) : (
         <>
           <p style={helperText}>{datos.length} registro(s)</p>
@@ -290,7 +315,7 @@ function TabMovimientos({ esAdmin }) {
       </div>
 
       {cargando ? (
-        <p style={helperText}>Cargando...</p>
+        <p style={helperText}><LeasingInlineLoading message="Cargando..." /></p>
       ) : (
         <>
           <p style={helperText}>{datos.length} registro(s)</p>
@@ -423,7 +448,7 @@ function TabModificaciones() {
       </div>
 
       {cargando ? (
-        <p style={helperText}>Cargando...</p>
+        <p style={helperText}><LeasingInlineLoading message="Cargando..." /></p>
       ) : (
         <>
           <p style={helperText}>{datos.length} modificación(es)</p>
@@ -477,11 +502,28 @@ function TabModificaciones() {
 const page = { display: "grid", gap: 16 };
 
 const headerCard = {
-  background: "linear-gradient(135deg, #1f2d52 0%, #3f5aa6 100%)",
+  background: "linear-gradient(135deg, #3b136f 0%, #6d28d9 100%)",
   color: "white",
   padding: "18px 20px",
   borderRadius: 16,
-  boxShadow: "0 10px 30px rgba(31,45,82,0.18)"
+  boxShadow: "0 10px 30px rgba(59,19,111,0.22)",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  flexWrap: "wrap"
+};
+
+const headerActions = { display: "flex", gap: 10, flexWrap: "wrap" };
+
+const btnSecondary = {
+  padding: "10px 14px",
+  border: "1px solid rgba(255,255,255,0.35)",
+  borderRadius: 10,
+  background: "rgba(255,255,255,0.12)",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: 700
 };
 
 const tabsBar = { display: "flex", gap: 8, flexWrap: "wrap" };
@@ -497,16 +539,16 @@ const tabBtn = {
 
 const tabActive = {
   ...tabBtn,
-  background: "#273c75",
+  background: "#6d28d9",
   color: "white",
-  borderColor: "#273c75"
+  borderColor: "#6d28d9"
 };
 
 const sectionCard = {
   background: "white",
   borderRadius: 16,
   padding: 18,
-  boxShadow: "0 10px 24px rgba(31,45,82,0.08)"
+  boxShadow: "0 10px 24px rgba(76,29,149,0.08)"
 };
 
 const barraFiltros = {

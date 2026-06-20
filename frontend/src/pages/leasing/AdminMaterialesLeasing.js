@@ -1,24 +1,25 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
+import { LeasingInlineLoading, LeasingPageLoading } from "../../components/LeasingLoading";
 import { apiGet, apiPut, apiDelete } from "../../services/api";
-
-function hoyISO() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function soloDigitos(v) {
   return String(v || "").replace(/\D/g, "");
 }
 
 export default function AdminMaterialesLeasing() {
+  const navigate = useNavigate();
   const esAdmin = String(localStorage.getItem("puede_datos")) === "SI";
 
+  const [cargandoPantalla, setCargandoPantalla] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [buscando, setBuscando] = useState(false);
   const [materiales, setMateriales] = useState([]);
   const [materialEditando, setMaterialEditando] = useState(null);
   const [form, setForm] = useState({});
   const [guardando, setGuardando] = useState(false);
+  const [materialProcesando, setMaterialProcesando] = useState(null);
 
   const buscar = useCallback(async (texto) => {
     const valor = String(texto || "").trim();
@@ -42,6 +43,11 @@ export default function AdminMaterialesLeasing() {
     } finally {
       setBuscando(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setCargandoPantalla(false), 220);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -88,6 +94,7 @@ export default function AdminMaterialesLeasing() {
       }
 
       setGuardando(true);
+      setMaterialProcesando(materialEditando.id);
 
       const payload = {
         codigo: form.codigo ? Number(form.codigo) : null,
@@ -111,6 +118,7 @@ export default function AdminMaterialesLeasing() {
       alert(error.message || "No se pudo guardar el material");
     } finally {
       setGuardando(false);
+      setMaterialProcesando(null);
     }
   };
 
@@ -125,6 +133,7 @@ export default function AdminMaterialesLeasing() {
 
     try {
       setGuardando(true);
+      setMaterialProcesando(mat.id);
       const res = await apiDelete(`/api/leasing/materiales/${mat.id}`);
 
       if (res.success) {
@@ -140,6 +149,7 @@ export default function AdminMaterialesLeasing() {
       alert(error.message || "No se pudo eliminar el material");
     } finally {
       setGuardando(false);
+      setMaterialProcesando(null);
     }
   };
 
@@ -154,12 +164,26 @@ export default function AdminMaterialesLeasing() {
   return (
     <Layout>
       <div style={page}>
+        {cargandoPantalla ? <LeasingPageLoading message="Cargando gestión de materiales..." /> : null}
+
+        {!cargandoPantalla ? (
+          <>
         <div style={headerCard}>
           <div>
             <h2 style={{ margin: 0 }}>Gestión de Materiales LEASING</h2>
             <p style={{ margin: "6px 0 0", color: "rgba(255,255,255,0.8)" }}>
               Solo administradores. Modificación y eliminación directa de materiales.
             </p>
+          </div>
+
+          <div style={headerActions}>
+            <button
+              type="button"
+              onClick={() => navigate("/leasing/movimientos")}
+              style={btnHeaderBack}
+            >
+              ↩ Volver a LeaseDesk
+            </button>
           </div>
         </div>
 
@@ -173,7 +197,7 @@ export default function AdminMaterialesLeasing() {
             style={inputSearch}
           />
 
-          {buscando ? <p style={helperText}>Buscando...</p> : null}
+          {buscando ? <p style={helperText}><LeasingInlineLoading message="Buscando..." /></p> : null}
 
           {!buscando && busqueda.trim().length >= 2 && materiales.length === 0 ? (
             <p style={helperText}>Sin resultados.</p>
@@ -207,14 +231,18 @@ export default function AdminMaterialesLeasing() {
                             style={btnEdit}
                             disabled={guardando}
                           >
-                            ✏️ Editar
+                            {guardando && materialProcesando === mat.id
+                              ? <LeasingInlineLoading message="Procesando..." />
+                              : "✏️ Editar"}
                           </button>
                           <button
                             onClick={() => eliminarMaterial(mat)}
                             style={btnDel}
                             disabled={guardando}
                           >
-                            🗑️ Eliminar
+                            {guardando && materialProcesando === mat.id
+                              ? <LeasingInlineLoading message="Eliminando..." />
+                              : "🗑️ Eliminar"}
                           </button>
                         </div>
                       </td>
@@ -290,7 +318,7 @@ export default function AdminMaterialesLeasing() {
                 disabled={guardando}
                 style={guardando ? btnDisabled : btnPrimary}
               >
-                {guardando ? "Guardando..." : "Guardar cambios"}
+                {guardando ? <LeasingInlineLoading message="Guardando..." /> : "Guardar cambios"}
               </button>
 
               <button onClick={cerrarEdicion} style={btnSecondary} disabled={guardando}>
@@ -298,6 +326,8 @@ export default function AdminMaterialesLeasing() {
               </button>
             </div>
           </section>
+        ) : null}
+          </>
         ) : null}
       </div>
     </Layout>
@@ -316,6 +346,11 @@ function Campo({ label, children }) {
 const page = { display: "grid", gap: 16 };
 
 const headerCard = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  flexWrap: "wrap",
   background: "linear-gradient(135deg, #7b1c1c 0%, #c0392b 100%)",
   color: "white",
   padding: "18px 20px",
@@ -323,11 +358,27 @@ const headerCard = {
   boxShadow: "0 10px 30px rgba(192,57,43,0.2)"
 };
 
+const headerActions = {
+  display: "flex",
+  gap: 10,
+  flexWrap: "wrap"
+};
+
+const btnHeaderBack = {
+  padding: "10px 14px",
+  border: "1px solid rgba(255,255,255,0.35)",
+  borderRadius: 10,
+  background: "rgba(255,255,255,0.12)",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: 700
+};
+
 const sectionCard = {
   background: "white",
   borderRadius: 16,
   padding: 18,
-  boxShadow: "0 10px 24px rgba(31,45,82,0.08)"
+  boxShadow: "0 10px 24px rgba(76,29,149,0.08)"
 };
 
 const sectionTitle = { margin: 0, marginBottom: 10 };
@@ -367,13 +418,13 @@ const th = {
 };
 const td = { padding: "8px 10px", borderBottom: "1px solid #edf0f5" };
 const trNormal = {};
-const trActivo = { background: "#eef4ff" };
+const trActivo = { background: "#f3e8ff" };
 
 const btnEdit = {
   padding: "5px 10px",
   border: "none",
   borderRadius: 6,
-  background: "#273c75",
+  background: "#6d28d9",
   color: "white",
   cursor: "pointer",
   fontSize: 12
@@ -393,7 +444,7 @@ const btnPrimary = {
   padding: "11px 16px",
   border: "none",
   borderRadius: 10,
-  background: "#273c75",
+  background: "#6d28d9",
   color: "white",
   cursor: "pointer",
   fontWeight: 700

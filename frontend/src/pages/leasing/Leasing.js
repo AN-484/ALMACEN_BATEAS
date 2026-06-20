@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
+import { LeasingInlineLoading, LeasingPageLoading } from "../../components/LeasingLoading";
 import { apiGet, apiPost } from "../../services/api";
 
 const FUNCIONES = [
@@ -22,12 +23,38 @@ function soloNumerosLimitado(valor, limite) {
   return soloDigitos(valor).slice(0, limite);
 }
 
+function descripcionTipoMovimiento(tipo) {
+  const tipoNum = Number(tipo);
+  if (tipoNum === 101) return "101 - INGRESO";
+  if (tipoNum === 201) return "201 - SALIDA";
+  if (tipoNum === 301) return "301 - MODIFICACION";
+  if (tipoNum === 401) return "401 - ELIMINACION";
+  return String(tipo || "-");
+}
+
+function nombreResponsable(responsable, responsableNombre) {
+  if (String(responsableNombre || "").trim()) {
+    return String(responsableNombre).trim();
+  }
+
+  const valor = String(responsable || "").trim();
+  if (!valor) return "-";
+
+  // Soporta formatos como "12345 - JUAN PEREZ" para mostrar solo el nombre.
+  const match = valor.match(/^\d+\s*-\s*(.+)$/);
+  if (match) return match[1].trim();
+
+  return valor;
+}
+
 export default function Leasing({ funcionInicial }) {
   const navigate = useNavigate();
   const esAdmin = String(localStorage.getItem("puede_datos")) === "SI";
 
+  const [cargandoPantalla, setCargandoPantalla] = useState(true);
   const [busquedaFuncion, setBusquedaFuncion] = useState("");
   const [funcionActiva, setFuncionActiva] = useState(null);
+  const [vistaAdmin401, setVistaAdmin401] = useState("eliminacion");
   const [guardando, setGuardando] = useState(false);
   const [buscandoMaterial, setBuscandoMaterial] = useState(false);
   const [busquedaMaterial, setBusquedaMaterial] = useState("");
@@ -80,6 +107,9 @@ export default function Leasing({ funcionInicial }) {
     obs: ""
   });
 
+  // Deshabilitado intencionalmente: selección de función por buscador.
+  // Requerimiento actual: ocultar barra y operar solo con botones de función.
+
   const funcionesVisibles = useMemo(
     () => FUNCIONES.filter((funcion) => funcion.codigo !== 401 || esAdmin),
     [esAdmin]
@@ -92,8 +122,16 @@ export default function Leasing({ funcionInicial }) {
     }
 
     setFuncionActiva(funcion);
+    if (funcion.codigo === 401) {
+      setVistaAdmin401("eliminacion");
+    }
     setBusquedaFuncion(`${funcion.codigo} - ${funcion.descripcion}`);
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => setCargandoPantalla(false), 220);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!funcionInicial) {
@@ -478,63 +516,37 @@ export default function Leasing({ funcionInicial }) {
   return (
     <Layout>
       <div style={page}>
+        {cargandoPantalla ? <LeasingPageLoading message="Cargando pantalla de movimientos..." /> : null}
+
+        {!cargandoPantalla ? (
+          <>
         <div style={headerCard}>
           <div>
             <h2 style={{ margin: 0 }}>LeaseDesk</h2>
-            <p style={{ margin: "6px 0 0", color: "#5b6270" }}>
-              Funciones 101 / 201 / 301 para usuario y 401 para administración.
+            <p style={{ margin: "6px 0 0", color: "#fafafb" }}>
+              Movimientos: Funciones Principales.
             </p>
           </div>
 
-          <button onClick={() => navigate("/dashboard")} style={btnSecondary}>
-            Volver al dashboard
-          </button>
+          <div style={headerActions}>
+            <button onClick={() => navigate("/leasing")} style={btnSecondary}>
+              ↩ Estados generales
+            </button>
 
-          <button onClick={() => navigate("/leasing/historial")} style={btnSecondary}>
-            📋 Historial
-          </button>
+            <button onClick={() => navigate("/leasing/historial")} style={btnSecondary}>
+              📋 Historial
+            </button>
+          </div>
         </div>
 
         <section style={sectionCard}>
           <h3 style={sectionTitle}>1. Funciones</h3>
           <p style={sectionHint}>
-            Escriba o seleccione una función como en SAP. La función 401 solo se
-            muestra si el usuario es administrador.
+            Seleccione un movimiento. La función de Eliminar solo esta disponible si es administrador.
           </p>
 
           <div style={selectorBox}>
-            <input
-              value={busquedaFuncion}
-              onChange={(e) => {
-                setBusquedaFuncion(e.target.value);
-                  const match = funcionesVisibles.find((funcion) => {
-                  const texto = e.target.value.trim().toLowerCase();
-                  if (!texto) return false;
-                  return (
-                    String(funcion.codigo).includes(texto) ||
-                    funcion.descripcion.toLowerCase().includes(texto)
-                  );
-                });
-
-                if (match && (match.codigo !== 401 || esAdmin)) {
-                  setFuncionActiva(match);
-                } else {
-                  setFuncionActiva(null);
-                }
-              }}
-              placeholder="Escriba 101, 201, 301 o 401 / Ingreso, Salida, Modificación, Eliminación"
-              style={inputSearch}
-              list="funciones-leasing"
-            />
-
-            <datalist id="funciones-leasing">
-              {funcionesVisibles.map((funcion) => (
-                <option
-                  key={funcion.codigo}
-                  value={`${funcion.codigo} - ${funcion.descripcion}`}
-                />
-              ))}
-            </datalist>
+            {/* Buscador oculto por requerimiento: se usa exclusivamente selección por botones. */}
 
             <div style={chipsBox}>
               {funcionesVisibles.map((funcion) => (
@@ -548,36 +560,26 @@ export default function Leasing({ funcionInicial }) {
                       : chip
                   }
                 >
-                  {funcion.codigo} - {funcion.descripcion}
+                  {funcion.descripcion}
                 </button>
               ))}
             </div>
           </div>
-
-          {funcionActiva && (
-            <div style={activeBox}>
-              <strong>Función seleccionada:</strong> {funcionActiva.codigo} - {funcionActiva.descripcion}
-              {funcionActiva.codigo === 401 && !esAdmin ? (
-                <span> (sin permisos)</span>
-              ) : null}
-            </div>
-          )}
         </section>
 
         {funcionActiva?.codigo === 101 ? (
           <section style={sectionCard}>
-            <h3 style={sectionTitle}>2. Ingreso de materiales (101)</h3>
+            <h3 style={sectionTitle}>2. Ingreso de materiales</h3>
             <p style={sectionHint}>
-              Se registra el material, el movimiento de ingreso y el estado inicial
-              del material en la base de datos de leasing.
+              Complete los siguientes campos:
             </p>
 
             <div style={grid2}>
-              <Campo label="Código material (10 dígitos, opcional)">
+              <Campo label="Código material (Opcional):">
                 <input
                   value={material.codigo}
                   onChange={(e) => actualizarMaterial("codigo", soloNumerosLimitado(e.target.value, 10))}
-                  placeholder="Se autogenera desde 9000000000 si queda vacío"
+                  placeholder="10 dígitos"
                   style={input}
                   maxLength={10}
                 />
@@ -587,7 +589,7 @@ export default function Leasing({ funcionInicial }) {
                 <input
                   value={material.descripcion}
                   onChange={(e) => actualizarMaterial("descripcion", e.target.value.toUpperCase())}
-                  placeholder="Ejemplo: CAJA"
+                  placeholder="Ejemplo: Cargador Frontal"
                   style={input}
                 />
               </Campo>
@@ -596,7 +598,7 @@ export default function Leasing({ funcionInicial }) {
                 <input
                   value={material.referencia}
                   onChange={(e) => actualizarMaterial("referencia", e.target.value.toUpperCase())}
-                  placeholder="Ejemplo: CARTA 625655"
+                  placeholder="Ejemplo: Carta / Orden de compra"
                   style={input}
                 />
               </Campo>
@@ -605,16 +607,16 @@ export default function Leasing({ funcionInicial }) {
                 <input
                   value={material.ubicacion}
                   onChange={(e) => actualizarMaterial("ubicacion", e.target.value.toUpperCase())}
-                  placeholder="Ejemplo: ALMACEN / B.2.3.5"
+                  placeholder="Ejemplo: Almacen / 2.B.2.3.5"
                   style={input}
                 />
               </Campo>
 
-              <Campo label="Placa material (9 dígitos)">
+              <Campo label="Placa material:">
                 <input
                   value={material.placa}
                   onChange={(e) => actualizarMaterial("placa", soloNumerosLimitado(e.target.value, 9))}
-                  placeholder="Ejemplo: 202500093"
+                  placeholder="9 dígitos"
                   style={input}
                   maxLength={9}
                 />
@@ -642,9 +644,9 @@ export default function Leasing({ funcionInicial }) {
                 />
               </Campo>
 
-              <Campo label="Responsable">
+              <Campo label="Atendido por:">
                 <input
-                  value={`${localStorage.getItem("codigo") || ""} - ${localStorage.getItem("nombre") || "Usuario"}`}
+                  value={`${localStorage.getItem("nombre") || "Usuario"}`}
                   readOnly
                   style={inputReadonly}
                 />
@@ -662,23 +664,18 @@ export default function Leasing({ funcionInicial }) {
             </div>
 
             <div style={summaryBox}>
-              <div><b>Fecha creación:</b> automática</div>
-              <div><b>Tipo movimiento:</b> 101 - INGRESO</div>
-              <div><b>Estado:</b> 1</div>
-              <div><b>Ubic / Destino:</b> se copia automáticamente de Ubicación</div>
-              <div><b>Placa movimiento:</b> se copia automáticamente de Placa material</div>
+              <div><b>Tipo movimiento:</b> INGRESO</div>
             </div>
 
             <button onClick={guardarIngreso} disabled={guardando} style={guardando ? btnDisabled : btnPrimary}>
-              {guardando ? "Guardando ingreso..." : "Registrar ingreso"}
+              {guardando ? <LeasingInlineLoading message="Guardando ingreso..." /> : "Registrar Ingreso"}
             </button>
           </section>
         ) : funcionActiva?.codigo === 201 ? (
           <section style={sectionCard}>
-            <h3 style={sectionTitle}>2. Salida de materiales (201)</h3>
+            <h3 style={sectionTitle}>2. Salida de materiales</h3>
             <p style={sectionHint}>
-              Primero busque el material por código o nombre. Luego registre el
-              movimiento de salida y se actualizará el estado a 201.
+              Busque el material y seleccione. Complete los siguientes campos:
             </p>
 
             <div style={searchPanel}>
@@ -750,24 +747,24 @@ export default function Leasing({ funcionInicial }) {
                 <input
                   value={movimientoSalida.ubic_destino}
                   onChange={(e) => actualizarMovimientoSalida("ubic_destino", e.target.value.toUpperCase())}
-                  placeholder="Ingrese ubicación o destino"
+                  placeholder="Ejemplo: Proyectos / 2.B.2.3.5"
                   style={input}
                 />
               </Campo>
 
               <Campo label="Responsable">
                 <input
-                  value={`${localStorage.getItem("codigo") || ""} - ${localStorage.getItem("nombre") || "Usuario"}`}
+                  value={`${localStorage.getItem("nombre") || "Usuario"}`}
                   readOnly
                   style={inputReadonly}
                 />
               </Campo>
 
-              <Campo label="Destinatario">
+              <Campo label="Usuario Destinatario">
                 <input
                   value={movimientoSalida.destinatario}
                   onChange={(e) => actualizarMovimientoSalida("destinatario", e.target.value.toUpperCase())}
-                  placeholder="Ingrese destinatario"
+                  placeholder="Ingrese nombre"
                   style={input}
                 />
               </Campo>
@@ -784,21 +781,18 @@ export default function Leasing({ funcionInicial }) {
             </div>
 
             <div style={summaryBox}>
-              <div><b>Tipo movimiento:</b> 201 - SALIDA</div>
-              <div><b>Guía:</b> se registra automáticamente como NC</div>
-              <div><b>Estado material:</b> se actualiza a 201</div>
+              <div><b>Tipo movimiento:</b> SALIDA</div>
             </div>
 
             <button onClick={guardarSalida} disabled={guardando} style={guardando ? btnDisabled : btnPrimary}>
-              {guardando ? "Guardando salida..." : "Registrar salida"}
+              {guardando ? <LeasingInlineLoading message="Guardando salida..." /> : "Registrar Salida"}
             </button>
           </section>
         ) : funcionActiva?.codigo === 301 ? (
           <section style={sectionCard}>
-            <h3 style={sectionTitle}>2. Modificación de movimientos (301)</h3>
+            <h3 style={sectionTitle}>2. Modificación de movimientos</h3>
             <p style={sectionHint}>
-              Busque el movimiento por material y tipo 101/201. Al guardar, se crea
-              un registro en <b>modif_movim</b> y se actualiza el movimiento original.
+              Buscar por material y tipo de movimiento.
             </p>
 
             <div style={searchPanel}>
@@ -823,8 +817,8 @@ export default function Leasing({ funcionInicial }) {
                     }}
                     style={input}
                   >
-                    <option value="101">101 - INGRESO</option>
-                    <option value="201">201 - SALIDA</option>
+                    <option value="101">INGRESO</option>
+                    <option value="201">SALIDA</option>
                   </select>
                 </Campo>
               </div>
@@ -928,7 +922,7 @@ export default function Leasing({ funcionInicial }) {
               </Campo>
 
               {Number(movimientoOriginal?.tipo_movimiento) === 201 ? (
-                <Campo label="Destinatario">
+                <Campo label="UsuarioDestinatario">
                   <input
                     value={movimientoModificacion.destinatario}
                     onChange={(e) => actualizarMovimientoModificacion("destinatario", e.target.value.toUpperCase())}
@@ -948,27 +942,44 @@ export default function Leasing({ funcionInicial }) {
             </div>
 
             <div style={summaryBox}>
-              <div><b>ID movimiento:</b> {movimientoOriginal?.id || "-"}</div>
-              <div><b>ID modificación:</b> automático en modif_movim</div>
-              <div><b>Edición movimiento:</b> se marca `edit = 1` e `id_modif = nuevo MM`</div>
+              <div><b>Tipo movimiento:</b> MODIFICACION</div>
             </div>
 
             <button onClick={guardarModificacion} disabled={guardando} style={guardando ? btnDisabled : btnPrimary}>
-              {guardando ? "Guardando modificación..." : "Registrar modificación"}
+              {guardando ? <LeasingInlineLoading message="Guardando modificación..." /> : "Registrar Modificación"}
             </button>
           </section>
         ) : funcionActiva?.codigo === 401 ? (
           <section style={sectionCard}>
-            <h3 style={{ ...sectionTitle, color: "#c0392b" }}>2. Eliminación de movimientos (401) — Solo administradores</h3>
+            <h3 style={{ ...sectionTitle, color: "#c0672b" }}>2. Eliminar de movimientos — Solo administradores</h3>
             <p style={sectionHint}>
-              Busque el movimiento por material y tipo 101/201. El movimiento se marcará
-              como eliminado (<b>estado = 0</b>) y se registrará la fecha de eliminación automáticamente.
+              Busque el movimiento por material y tipo de movimiento.
             </p>
+
+            <div style={adminToggleBox}>
+              <button
+                type="button"
+                onClick={() => setVistaAdmin401("eliminacion")}
+                style={vistaAdmin401 === "eliminacion" ? adminToggleActive : adminToggleBtn}
+              >
+                Eliminación de movimientos
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setVistaAdmin401("materiales")}
+                style={vistaAdmin401 === "materiales" ? adminMaterialToggleActive : adminMaterialToggleBtn}
+              >
+                Editar / Eliminar Materiales
+              </button> 
+            </div>
 
             {!esAdmin ? (
               <div style={alertBox}>No tiene permisos para esta función.</div>
             ) : (
               <>
+                {vistaAdmin401 === "eliminacion" ? (
+                  <>
                 <div style={searchPanel}>
                   <div style={grid2}>
                     <Campo label="Buscar material por código o nombre">
@@ -991,8 +1002,8 @@ export default function Leasing({ funcionInicial }) {
                         }}
                         style={input}
                       >
-                        <option value="101">101 - INGRESO</option>
-                        <option value="201">201 - SALIDA</option>
+                        <option value="101">INGRESO</option>
+                        <option value="201">SALIDA</option>
                       </select>
                     </Campo>
                   </div>
@@ -1010,8 +1021,14 @@ export default function Leasing({ funcionInicial }) {
                         >
                           <b>{item.material?.codigo || item.codigo_material}</b> - {item.material?.descripcion || "Sin descripción"}
                           <span style={resultadoMeta}>
-                            Mov: {item.id} | Tipo: {item.tipo_movimiento} | Fecha: {item.date_movi}
+                            Mov: {item.id} | Tipo: {descripcionTipoMovimiento(item.tipo_movimiento)} | Fecha: {item.date_movi}
                           </span>
+                          <span style={resultadoMetaSec}>
+                            Responsable: {nombreResponsable(item.responsable, item.responsable_nombre)} | Ubicación: {item.ubic_destino || item.ubicacion || "-"} | Placa: {item.placa || item.material?.placa || "-"}
+                          </span>
+                          {Number(item.tipo_movimiento) === 201 ? (
+                            <span style={resultadoMetaSec}>Destinatario: {item.destinatario || "-"}</span>
+                          ) : null}
                         </button>
                       ))}
                     </div>
@@ -1025,10 +1042,14 @@ export default function Leasing({ funcionInicial }) {
                     <div style={{ ...summaryBox, background: "#fdf2f2", border: "1px solid #f5c6cb" }}>
                       <div><b>Movimiento:</b> {movimientoAEliminar.id}</div>
                       <div><b>Material:</b> {movimientoAEliminar.material?.descripcion || movimientoAEliminar.codigo_material}</div>
-                      <div><b>Tipo:</b> {movimientoAEliminar.tipo_movimiento}</div>
+                      <div><b>Tipo:</b> {descripcionTipoMovimiento(movimientoAEliminar.tipo_movimiento)}</div>
                       <div><b>Fecha movimiento:</b> {movimientoAEliminar.date_movi}</div>
-                      <div><b>Fecha eliminación:</b> automática (hoy)</div>
-                      <div><b>Estado resultante:</b> 0 (eliminado)</div>
+                      <div><b>Responsable:</b> {nombreResponsable(movimientoAEliminar.responsable, movimientoAEliminar.responsable_nombre)}</div>
+                      <div><b>Ubicación:</b> {movimientoAEliminar.ubic_destino || movimientoAEliminar.ubicacion || "-"}</div>
+                      <div><b>Placa:</b> {movimientoAEliminar.placa || movimientoAEliminar.material?.placa || "-"}</div>
+                      {Number(movimientoAEliminar.tipo_movimiento) === 201 ? (
+                        <div><b>Destinatario:</b> {movimientoAEliminar.destinatario || "-"}</div>
+                      ) : null}
                     </div>
 
                     <button
@@ -1036,22 +1057,23 @@ export default function Leasing({ funcionInicial }) {
                       disabled={guardando}
                       style={guardando ? btnDisabled : btnDanger}
                     >
-                      {guardando ? "Eliminando..." : "Confirmar eliminación"}
+                      {guardando ? <LeasingInlineLoading message="Eliminando..." /> : "Confirmar eliminación"}
                     </button>
                   </>
                 ) : null}
-
-                <div style={divider}></div>
-
-                <div style={summaryBox}>
-                  <div>Para modificar o eliminar materiales directamente, use la gestión de materiales:</div>
-                  <button
-                    onClick={() => navigate("/leasing/admin-materiales")}
-                    style={{ ...btnPrimary, marginTop: 8, display: "inline-block" }}
-                  >
-                    Gestión de Materiales (Admin)
-                  </button>
-                </div>
+                  </>
+                ) : (
+                  <div style={summaryBox}>
+                    <div>Administración directa de materiales (editar/eliminar materiales LEASING).</div>
+                    <button
+                      onClick={() => navigate("/leasing/admin-materiales")}
+                      style={{ ...btnDangerCompact, marginTop: 8, display: "inline-block" }}
+                      disabled={guardando}
+                    >
+                      Ir a Gestión de Materiales (Admin)
+                    </button>
+                  </div>
+                )}
               </>
             )}
           </section>
@@ -1067,6 +1089,8 @@ export default function Leasing({ funcionInicial }) {
             </p>
           </section>
         )}
+          </>
+        ) : null}
       </div>
     </Layout>
   );
@@ -1091,18 +1115,24 @@ const headerCard = {
   justifyContent: "space-between",
   alignItems: "center",
   gap: "12px",
-  background: "linear-gradient(135deg, #1f2d52 0%, #3f5aa6 100%)",
+  background: "linear-gradient(135deg, #3b136f 0%, #6d28d9 100%)",
   color: "white",
   padding: "18px 20px",
   borderRadius: "16px",
-  boxShadow: "0 10px 30px rgba(31,45,82,0.18)"
+  boxShadow: "0 10px 30px rgba(59,19,111,0.22)"
+};
+
+const headerActions = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap"
 };
 
 const sectionCard = {
   background: "white",
   borderRadius: "16px",
   padding: "18px",
-  boxShadow: "0 10px 24px rgba(31,45,82,0.08)"
+  boxShadow: "0 10px 24px rgba(76,29,149,0.08)"
 };
 
 const sectionTitle = {
@@ -1121,15 +1151,6 @@ const selectorBox = {
   gap: "12px"
 };
 
-const inputSearch = {
-  width: "100%",
-  border: "1px solid #cdd4e0",
-  borderRadius: "10px",
-  padding: "12px 14px",
-  boxSizing: "border-box",
-  fontSize: "14px"
-};
-
 const chipsBox = {
   display: "flex",
   flexWrap: "wrap",
@@ -1139,24 +1160,17 @@ const chipsBox = {
 const chip = {
   padding: "10px 12px",
   borderRadius: "999px",
-  border: "1px solid #cdd4e0",
-  background: "#f7f9fd",
+  border: "1px solid #177172",
+  background: "#dff8f8",
+  color: "#0f5f63",
   cursor: "pointer"
 };
 
 const chipActive = {
   ...chip,
-  background: "#273c75",
+  background: "#177172",
   color: "white",
-  borderColor: "#273c75"
-};
-
-const activeBox = {
-  marginTop: "14px",
-  padding: "12px 14px",
-  borderRadius: "10px",
-  background: "#eef4ff",
-  color: "#20315d"
+  borderColor: "#177172"
 };
 
 const grid2 = {
@@ -1246,11 +1260,16 @@ const resultadoMeta = {
   color: "#667085"
 };
 
+const resultadoMetaSec = {
+  ...resultadoMeta,
+  color: "#475467"
+};
+
 const btnPrimary = {
   padding: "12px 16px",
   border: "none",
   borderRadius: "10px",
-  background: "#273c75",
+  background: "#6d28d9",
   color: "white",
   cursor: "pointer",
   fontWeight: 700
@@ -1266,17 +1285,27 @@ const btnDanger = {
   padding: "12px 16px",
   border: "none",
   borderRadius: "10px",
-  background: "#c0392b",
+  background: "#cf781c",
   color: "white",
   cursor: "pointer",
   fontWeight: 700
+};
+
+const btnDangerCompact = {
+  ...btnDanger,
+  padding: "8px 10px",
+  fontSize: "12px",
+  maxWidth: "500px",
+  whiteSpace: "normal",
+  lineHeight: 1.2,
+  textAlign: "center"
 };
 
 const alertBox = {
   padding: "12px 14px",
   borderRadius: "10px",
   background: "#fdf2f2",
-  color: "#c0392b",
+  color: "#c0982b",
   fontWeight: 600
 };
 
@@ -1288,4 +1317,42 @@ const btnSecondary = {
   color: "white",
   cursor: "pointer",
   fontWeight: 700
+};
+
+const adminToggleBox = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "10px",
+  marginBottom: "14px"
+};
+
+const adminToggleBtn = {
+  padding: "10px 12px",
+  borderRadius: "10px",
+  border: "1px solid #d8caef",
+  background: "#f8f3ff",
+  color: "#4c1d95",
+  fontWeight: 700,
+  cursor: "pointer"
+};
+
+const adminToggleActive = {
+  ...adminToggleBtn,
+  background: "#6d28d9",
+  borderColor: "#6d28d9",
+  color: "white"
+};
+
+const adminMaterialToggleBtn = {
+  ...adminToggleBtn,
+  border: "1px solid #efc9c5",
+  background: "#fdeceb",
+  color: "#7b1c1c"
+};
+
+const adminMaterialToggleActive = {
+  ...adminMaterialToggleBtn,
+  background: "#c0392b",
+  borderColor: "#c0392b",
+  color: "white"
 };
