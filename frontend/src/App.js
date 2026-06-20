@@ -52,13 +52,9 @@ import Dashboard from "./pages/Dashboard";
 import SMDS from "./pages/SMDS";
 import Cilindros from "./pages/Cilindros";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Maestros from "./pages/Maestros";
 import EPPS from "./pages/EPPS";
 import Guias from "./pages/Guias";
 import Leasing from "./pages/leasing/Leasing";
-import Ingresos101 from "./pages/leasing/Ingresos101";
-import Salidas201 from "./pages/leasing/Salidas201";
-import Modificaciones301 from "./pages/leasing/Modificaciones301";
 
 function App() {
   return (
@@ -131,7 +127,7 @@ function App() {
             path="/leasing/ingresos"
             element={
               <ProtectedRoute>
-                <Ingresos101 />
+                <Leasing funcionInicial="101" />
               </ProtectedRoute>
             }
           />
@@ -140,7 +136,7 @@ function App() {
             path="/leasing/salidas"
             element={
               <ProtectedRoute>
-                <Salidas201 />
+                <Leasing funcionInicial="201" />
               </ProtectedRoute>
             }
           />
@@ -149,7 +145,16 @@ function App() {
             path="/leasing/modificaciones"
             element={
               <ProtectedRoute>
-                <Modificaciones301 />
+                <Leasing funcionInicial="301" />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/leasing/eliminaciones"
+            element={
+              <ProtectedRoute>
+                <Leasing funcionInicial="401" />
               </ProtectedRoute>
             }
           />
