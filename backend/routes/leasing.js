@@ -23,6 +23,245 @@ function valorIgualAnterior(actual, nuevo) {
   return actualNormalizado === nuevoNormalizado;
 }
 
+function parseCantidadPositiva(valor) {
+  const n = Number(valor);
+  if (!Number.isInteger(n) || n <= 0) {
+    return null;
+  }
+  return n;
+}
+
+function parseSap01(valor) {
+  if (valor === true || valor === 1 || valor === "1" || String(valor || "").toLowerCase() === "true") {
+    return 1;
+  }
+  return 0;
+}
+
+function esErrorNoEncontrado(error) {
+  return Boolean(
+    error && (
+      error.code === "PGRST116" ||
+      /no rows/i.test(String(error.message || "")) ||
+      /not found/i.test(String(error.message || ""))
+    )
+  );
+}
+
+async function obtenerEstadoOCrear(materialId) {
+  const { data: estado, error: errorEstado } = await supabaseLeasing
+    .from("estado")
+    .select("id, mov, stock, sap")
+    .eq("id", materialId)
+    .maybeSingle();
+
+  if (estado) {
+    return { data: estado, error: null };
+  }
+
+  if (errorEstado && !esErrorNoEncontrado(errorEstado)) {
+    return { data: null, error: errorEstado };
+  }
+
+  const { data: material, error: errorMaterial } = await supabaseLeasing
+    .from("materiales")
+    .select("id, cant, sap")
+    .eq("id", materialId)
+    .single();
+
+  if (errorMaterial || !material) {
+    return { data: null, error: errorMaterial || new Error("No se encontró el material para crear el estado") };
+  }
+
+  const { data: ultimoMovimiento } = await supabaseLeasing
+    .from("movimientos")
+    .select("tipo_movimiento, cant, sap")
+    .eq("codigo_material", materialId)
+    .order("date_movi", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const movInicial = Number(ultimoMovimiento?.tipo_movimiento || 101);
+  const stockInicial = Number(material.cant ?? ultimoMovimiento?.cant ?? 0);
+  const sapInicial = parseSap01(material.sap ?? ultimoMovimiento?.sap ?? 0);
+
+  const payload = {
+    id: materialId,
+    mov: movInicial,
+    stock: stockInicial,
+    sap: sapInicial
+  };
+
+  const { data: estadoCreado, error: errorCrear } = await supabaseLeasing
+    .from("estado")
+    .insert(payload)
+    .select("*")
+    .single();
+
+  if (errorCrear) {
+    const { data: estadoCant, error: errorCant } = await supabaseLeasing
+      .from("estado")
+      .insert({ id: materialId, mov: movInicial, stock: stockInicial, sap: sapInicial })
+      .select("*")
+      .single();
+
+    if (estadoCant) {
+      return { data: estadoCant, error: null };
+    }
+
+    return {
+      data: {
+        id: materialId,
+        mov: movInicial,
+        stock: stockInicial,
+        sap: sapInicial
+      },
+      error: errorCant || null
+    };
+  }
+
+  return { data: estadoCreado, error: null };
+}
+
+async function sincronizarDesdeUltimoMovimientoActivo(materialId) {
+  const { data: movimientosActivos, error: errorMovimientos } = await supabaseLeasing
+    .from("movimientos")
+    .select("id, tipo_movimiento, ubic_destino, cant, sap")
+    .eq("codigo_material", materialId)
+    .eq("estado", 1)
+    .in("tipo_movimiento", [101, 201])
+    .order("date_movi", { ascending: true })
+    .order("id", { ascending: true });
+
+  if (errorMovimientos) {
+    return { error: errorMovimientos };
+  }
+
+  let stockCalculado = 0;
+  let ingresosActivos = 0;
+  let salidasActivas = 0;
+
+  for (const movimiento of movimientosActivos || []) {
+    const cantidadMovimiento = Number(movimiento.cant ?? 0);
+
+    if (Number(movimiento.tipo_movimiento) === 101) {
+      ingresosActivos += 1;
+      stockCalculado += cantidadMovimiento;
+    } else if (Number(movimiento.tipo_movimiento) === 201) {
+      salidasActivas += 1;
+      stockCalculado -= cantidadMovimiento;
+    }
+  }
+
+  if (stockCalculado < 0) {
+    stockCalculado = 0;
+  }
+
+  const ultimoMovimiento = (movimientosActivos || []).length
+    ? movimientosActivos[movimientosActivos.length - 1]
+    : null;
+
+  const materialActivo = ingresosActivos > 0;
+  const nuevaCantidad = materialActivo ? stockCalculado : 0;
+  const nuevaUbicacion = materialActivo
+    ? limpiarTexto(ultimoMovimiento?.ubic_destino)?.toUpperCase() || null
+    : null;
+  const nuevoMov = Number(ultimoMovimiento?.tipo_movimiento ?? 101);
+  const nuevoSap = materialActivo ? parseSap01(ultimoMovimiento?.sap ?? 0) : 0;
+
+  const { error: errorMaterial } = await supabaseLeasing
+    .from("materiales")
+    .update({
+      cant: nuevaCantidad,
+      ubicacion: nuevaUbicacion,
+      sap: nuevoSap,
+      estado: materialActivo ? 1 : 0
+    })
+    .eq("id", materialId);
+
+  if (errorMaterial) {
+    return { error: errorMaterial };
+  }
+
+  const { data: estado, error: errorEstado } = await actualizarEstadoConStock(
+    materialId,
+    nuevoMov,
+    nuevaCantidad,
+    nuevoSap
+  );
+
+  if (errorEstado) {
+    return { error: errorEstado };
+  }
+
+  return {
+    error: null,
+    data: {
+      ultimoMovimiento: ultimoMovimiento || null,
+      estado,
+      ingresosActivos,
+      salidasActivas,
+      cantidad: nuevaCantidad,
+      ubicacion: nuevaUbicacion
+    }
+  };
+}
+
+async function insertarEstadoConStock(idMaterial, mov, stock, sap) {
+  const payloadBase = { id: idMaterial, mov, sap };
+
+  const conStock = await supabaseLeasing
+    .from("estado")
+    .insert({ ...payloadBase, stock });
+
+  if (!conStock.error) {
+    return { error: null };
+  }
+
+  if (!String(conStock.error.message || "").toLowerCase().includes("stock")) {
+    return { error: conStock.error };
+  }
+
+  const conCant = await supabaseLeasing
+    .from("estado")
+    .insert({ ...payloadBase, stock });
+
+  return { error: conCant.error || null };
+}
+
+async function actualizarEstadoConStock(idMaterial, mov, stock, sap) {
+  const payloadBase = { mov, sap };
+
+  const conStock = await supabaseLeasing
+    .from("estado")
+    .update({ ...payloadBase, stock })
+    .eq("id", idMaterial)
+    .select("*")
+    .single();
+
+  if (!conStock.error) {
+    return conStock;
+  }
+
+  if (!String(conStock.error.message || "").toLowerCase().includes("stock")) {
+    const porCant = await supabaseLeasing
+      .from("estado")
+      .upsert({ id: idMaterial, ...payloadBase, stock }, { onConflict: "id" })
+      .select("*")
+      .single();
+
+    return porCant;
+  }
+
+  const conCant = await supabaseLeasing
+    .from("estado")
+    .upsert({ id: idMaterial, ...payloadBase, stock }, { onConflict: "id" })
+    .select("*")
+    .single();
+
+  return conCant;
+}
+
 function extraerCodigoResponsable(responsable) {
   const valor = String(responsable || "").trim();
   if (!valor) return null;
@@ -47,7 +286,7 @@ router.get("/materiales", async (req, res) => {
 
     let query = supabaseLeasing
       .from("materiales")
-      .select("id, codigo, descripcion, referencia, ubicacion, placa, estado")
+      .select("id, codigo, descripcion, referencia, ubicacion, placa, cant, sap, estado")
       .eq("estado", 1)
       .limit(10);
 
@@ -63,9 +302,27 @@ router.get("/materiales", async (req, res) => {
       throw error;
     }
 
+    const idsMateriales = (data || []).map((item) => item.id);
+    let estadosPorId = new Map();
+
+    if (idsMateriales.length > 0) {
+      const { data: estados } = await supabaseLeasing
+        .from("estado")
+        .select("id, mov, stock, sap")
+        .in("id", idsMateriales);
+
+      estadosPorId = new Map((estados || []).map((item) => [item.id, item]));
+    }
+
+    const dataConEstado = (data || []).map((item) => ({
+      ...item,
+      stock: Number(estadosPorId.get(item.id)?.stock ?? item.cant ?? 0),
+      sap: Number(estadosPorId.get(item.id)?.sap ?? item.sap ?? 0)
+    }));
+
     return res.json({
       success: true,
-      data: data || []
+      data: dataConEstado
     });
   } catch (error) {
     console.error("Error buscar materiales leasing:", error);
@@ -95,7 +352,7 @@ router.get("/movimientos", async (req, res) => {
 
     let materialesQuery = supabaseLeasing
       .from("materiales")
-      .select("id, codigo, descripcion, referencia, ubicacion, placa, estado")
+      .select("id, codigo, descripcion, referencia, ubicacion, placa, cant, sap, estado")
       .eq("estado", 1)
       .limit(20);
 
@@ -122,7 +379,7 @@ router.get("/movimientos", async (req, res) => {
 
     let movimientosQuery = supabaseLeasing
       .from("movimientos")
-      .select("id, codigo_material, date_movi, date_crea, tipo_movimiento, guia, ubic_destino, placa, responsable, destinatario, obs, edit, id_modif, estado, date_elim")
+      .select("id, codigo_material, date_movi, date_crea, tipo_movimiento, guia, ubic_destino, placa, cant, sap, responsable, destinatario, obs, edit, id_modif, estado, date_elim")
       .in("codigo_material", idsMateriales)
       .in("tipo_movimiento", tiposPermitidos)
       .eq("estado", 1)
@@ -205,6 +462,8 @@ router.post("/ingresos", async (req, res) => {
     }
 
     const { material = {}, movimiento = {} } = req.body || {};
+    const cantidad = parseCantidadPositiva(material.cant ?? movimiento.cant);
+    const sapValor = parseSap01(material.sap ?? movimiento.sap);
 
     if (!material.descripcion) {
       return res.status(400).json({
@@ -220,17 +479,61 @@ router.post("/ingresos", async (req, res) => {
       });
     }
 
-    if (!esNumeroValido(material.codigo, 10)) {
+    if (!limpiarTexto(material.referencia)) {
+      return res.status(400).json({ success: false, message: "La referencia es obligatoria" });
+    }
+
+    if (!limpiarTexto(material.ubicacion)) {
+      return res.status(400).json({ success: false, message: "La ubicación es obligatoria" });
+    }
+
+    if (!esNumeroValido(material.placa, 9)) {
+      return res.status(400).json({ success: false, message: "La placa del material debe tener 9 dígitos" });
+    }
+
+    if (!limpiarTexto(movimiento.guia)) {
+      return res.status(400).json({ success: false, message: "La guía es obligatoria" });
+    }
+
+    if (!cantidad) {
       return res.status(400).json({
         success: false,
-        message: "El código de material debe tener 10 dígitos o quedar vacío"
+        message: "La cantidad debe ser un número entero mayor a 0"
+      });
+    }
+
+    if (!limpiarTexto(material.referencia)) {
+      return res.status(400).json({
+        success: false,
+        message: "La referencia es obligatoria"
+      });
+    }
+
+    if (!limpiarTexto(material.ubicacion)) {
+      return res.status(400).json({
+        success: false,
+        message: "La ubicación es obligatoria"
       });
     }
 
     if (!esNumeroValido(material.placa, 9)) {
       return res.status(400).json({
         success: false,
-        message: "La placa del material debe tener 9 dígitos o quedar vacía"
+        message: "La placa del material es obligatoria y debe tener 9 dígitos"
+      });
+    }
+
+    if (!limpiarTexto(movimiento.guia)) {
+      return res.status(400).json({
+        success: false,
+        message: "La guía es obligatoria"
+      });
+    }
+
+    if (!esNumeroValido(material.codigo, 10)) {
+      return res.status(400).json({
+        success: false,
+        message: "El código de material debe tener 10 dígitos o quedar vacío"
       });
     }
 
@@ -247,6 +550,8 @@ router.post("/ingresos", async (req, res) => {
       referencia: limpiarTexto(material.referencia),
       ubicacion: limpiarTexto(material.ubicacion)?.toUpperCase() || null,
       placa: material.placa ? Number(material.placa) : null,
+      cant: cantidad,
+      sap: sapValor,
       estado: 1,
       modif: 0,
       id_modif: null
@@ -264,12 +569,12 @@ router.post("/ingresos", async (req, res) => {
 
     const estadoPayload = {
       id: materialCreado.id,
-      mov: 101
+      mov: 101,
+      stock: cantidad,
+      sap: sapValor
     };
 
-    const { error: errorEstado } = await supabaseLeasing
-      .from("estado")
-      .insert(estadoPayload);
+    const { error: errorEstado } = await insertarEstadoConStock(materialCreado.id, 101, cantidad, sapValor);
 
     if (errorEstado) {
       await supabaseLeasing.from("materiales").delete().eq("id", materialCreado.id);
@@ -283,6 +588,8 @@ router.post("/ingresos", async (req, res) => {
       guia: limpiarTexto(movimiento.guia),
       ubic_destino: limpiarTexto(movimiento.ubic_destino)?.toUpperCase() || null,
       placa: movimiento.placa ? Number(movimiento.placa) : null,
+      cant: cantidad,
+      sap: sapValor,
       responsable: codigoUsuario || nombreUsuario,
       destinatario: null,
       obs: limpiarTexto(movimiento.obs),
@@ -335,6 +642,8 @@ router.post("/salidas", async (req, res) => {
     }
 
     const { movimiento = {} } = req.body || {};
+    const cantidad = parseCantidadPositiva(movimiento.cant);
+    const sapValor = parseSap01(movimiento.sap);
 
     if (!movimiento.codigo_material) {
       return res.status(400).json({
@@ -350,12 +659,48 @@ router.post("/salidas", async (req, res) => {
       });
     }
 
+    if (!limpiarTexto(movimiento.ubic_destino)) {
+      return res.status(400).json({
+        success: false,
+        message: "Ubic / Destino es obligatorio"
+      });
+    }
+
+    if (!limpiarTexto(movimiento.destinatario)) {
+      return res.status(400).json({
+        success: false,
+        message: "Usuario Destinatario es obligatorio"
+      });
+    }
+
+    if (!cantidad) {
+      return res.status(400).json({
+        success: false,
+        message: "La cantidad debe ser un número entero mayor a 0"
+      });
+    }
+
     const { data: material, error: errorMaterial } = await supabaseLeasing
       .from("materiales")
-      .select("id, codigo, descripcion, referencia, ubicacion, placa, estado")
+      .select("id, codigo, descripcion, referencia, ubicacion, placa, cant, sap, estado")
       .eq("id", movimiento.codigo_material)
       .eq("estado", 1)
       .single();
+
+    const { data: estadoActual, error: errorEstadoActual } = await obtenerEstadoOCrear(movimiento.codigo_material);
+
+    if (errorEstadoActual) {
+      console.warn("Estado no disponible para salida, se intentará reconstruir:", errorEstadoActual.message);
+    }
+
+    const stockActual = Number(estadoActual?.stock ?? 0);
+    const nuevoStock = stockActual - cantidad;
+    if (nuevoStock < 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Stock insuficiente. Stock actual: ${stockActual}`
+      });
+    }
 
     if (errorMaterial || !material) {
       return res.status(404).json({
@@ -378,6 +723,8 @@ router.post("/salidas", async (req, res) => {
       guia: "NC",
       ubic_destino: limpiarTexto(movimiento.ubic_destino)?.toUpperCase() || null,
       placa: material.placa ? Number(material.placa) : null,
+      cant: cantidad,
+      sap: sapValor,
       responsable: codigoUsuario || nombreUsuario,
       destinatario: limpiarTexto(movimiento.destinatario),
       obs: limpiarTexto(movimiento.obs),
@@ -397,16 +744,27 @@ router.post("/salidas", async (req, res) => {
       throw errorMovimiento;
     }
 
-    const { data: estadoActualizado, error: errorEstado } = await supabaseLeasing
-      .from("estado")
-      .update({ mov: 201 })
-      .eq("id", material.id)
-      .select("*")
-      .single();
+    const { data: estadoActualizado, error: errorEstado } = await actualizarEstadoConStock(
+      material.id,
+      201,
+      nuevoStock,
+      sapValor
+    );
 
     if (errorEstado) {
       await supabaseLeasing.from("movimientos").delete().eq("id", movimientoCreado.id);
       throw errorEstado;
+    }
+
+    const { error: errorMaterialStock } = await supabaseLeasing
+      .from("materiales")
+      .update({ cant: nuevoStock, ubicacion: limpiarTexto(movimiento.ubic_destino)?.toUpperCase() || null })
+      .eq("id", material.id);
+
+    if (errorMaterialStock) {
+      await supabaseLeasing.from("movimientos").delete().eq("id", movimientoCreado.id);
+      await actualizarEstadoConStock(material.id, 201, stockActual, Number(estadoActual?.sap ?? sapValor));
+      throw errorMaterialStock;
     }
 
     return res.json({
@@ -440,6 +798,8 @@ router.post("/modificaciones", async (req, res) => {
     }
 
     const { id_movimiento, movimiento = {} } = req.body || {};
+    const cantidadNueva = parseCantidadPositiva(movimiento.cant);
+    const sapValor = parseSap01(movimiento.sap);
 
     if (!id_movimiento) {
       return res.status(400).json({
@@ -469,10 +829,61 @@ router.post("/modificaciones", async (req, res) => {
       });
     }
 
+    if (Number(movimientoActual.tipo_movimiento) === 101) {
+      const { count: salidasActivas, error: errorConteoSalidas } = await supabaseLeasing
+        .from("movimientos")
+        .select("id", { count: "exact", head: true })
+        .eq("codigo_material", movimientoActual.codigo_material)
+        .eq("estado", 1)
+        .eq("tipo_movimiento", 201);
+
+      if (errorConteoSalidas) {
+        throw errorConteoSalidas;
+      }
+
+      if (Number(salidasActivas || 0) > 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Este material ya tiene salidas registradas. No se puede modificar ningún ingreso."
+        });
+      }
+    }
+
+    if (Number(movimientoActual.tipo_movimiento) === 201) {
+      const { data: ultimaSalida, error: errorUltimaSalida } = await supabaseLeasing
+        .from("movimientos")
+        .select("id")
+        .eq("codigo_material", movimientoActual.codigo_material)
+        .eq("estado", 1)
+        .eq("tipo_movimiento", 201)
+        .order("date_movi", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (errorUltimaSalida) {
+        throw errorUltimaSalida;
+      }
+
+      if (!ultimaSalida || Number(ultimaSalida.id) !== Number(movimientoActual.id)) {
+        return res.status(400).json({
+          success: false,
+          message: "Solo se puede modificar la última salida del material."
+        });
+      }
+    }
+
     if (!movimiento.date_movi) {
       return res.status(400).json({
         success: false,
         message: "La fecha de movimiento es obligatoria"
+      });
+    }
+
+    if (!cantidadNueva) {
+      return res.status(400).json({
+        success: false,
+        message: "La cantidad debe ser un número entero mayor a 0"
       });
     }
 
@@ -484,11 +895,33 @@ router.post("/modificaciones", async (req, res) => {
     }
 
     const nuevoResponsable = codigoUsuario || nombreUsuario;
+    const cantidadAnterior = Number(movimientoActual.cant || 0);
+
+    const { data: estadoActual, error: errorEstadoActual } = await obtenerEstadoOCrear(movimientoActual.codigo_material);
+
+    if (errorEstadoActual) {
+      console.warn("Estado no disponible para modificación, se intentará reconstruir:", errorEstadoActual.message);
+    }
+
+    const stockActual = Number(estadoActual?.stock ?? 0);
+    const esIngreso = Number(movimientoActual.tipo_movimiento) === 101;
+    const deltaStock = esIngreso ? (cantidadNueva - cantidadAnterior) : (cantidadAnterior - cantidadNueva);
+    const nuevoStock = stockActual + deltaStock;
+
+    if (nuevoStock < 0) {
+      return res.status(400).json({
+        success: false,
+        message: `La modificación deja stock negativo (${nuevoStock}). Revise la cantidad.`
+      });
+    }
+
     const payloadActualizado = {
       date_movi: movimiento.date_movi,
       guia: limpiarTexto(movimiento.guia),
       ubic_destino: limpiarTexto(movimiento.ubic_destino)?.toUpperCase() || null,
       placa: movimiento.placa ? Number(movimiento.placa) : null,
+      cant: cantidadNueva,
+      sap: sapValor,
       responsable: nuevoResponsable,
       destinatario:
         Number(movimientoActual.tipo_movimiento) === 201
@@ -521,6 +954,12 @@ router.post("/modificaciones", async (req, res) => {
       placa: valorIgualAnterior(movimientoActual.placa, payloadActualizado.placa)
         ? null
         : movimientoActual.placa,
+      cant: valorIgualAnterior(movimientoActual.cant, payloadActualizado.cant)
+        ? null
+        : movimientoActual.cant,
+      sap: valorIgualAnterior(movimientoActual.sap, payloadActualizado.sap)
+        ? null
+        : movimientoActual.sap,
       responsable: valorIgualAnterior(movimientoActual.responsable, payloadActualizado.responsable)
         ? null
         : movimientoActual.responsable,
@@ -537,6 +976,8 @@ router.post("/modificaciones", async (req, res) => {
       snapshotModificacion.guia,
       snapshotModificacion.ubic_destino,
       snapshotModificacion.placa,
+      snapshotModificacion.cant,
+      snapshotModificacion.sap,
       snapshotModificacion.responsable,
       snapshotModificacion.destinatario,
       snapshotModificacion.obs
@@ -574,11 +1015,84 @@ router.post("/modificaciones", async (req, res) => {
       throw errorActualizar;
     }
 
+    const { data: estadoActualizado, error: errorEstado } = await actualizarEstadoConStock(
+      movimientoActual.codigo_material,
+      Number(movimientoActual.tipo_movimiento),
+      nuevoStock,
+      sapValor
+    );
+
+    if (errorEstado) {
+      await supabaseLeasing
+        .from("movimientos")
+        .update({
+          date_movi: movimientoActual.date_movi,
+          guia: movimientoActual.guia,
+          ubic_destino: movimientoActual.ubic_destino,
+          placa: movimientoActual.placa,
+          cant: movimientoActual.cant,
+          sap: movimientoActual.sap,
+          responsable: movimientoActual.responsable,
+          destinatario: movimientoActual.destinatario,
+          obs: movimientoActual.obs,
+          edit: movimientoActual.edit,
+          estado: movimientoActual.estado,
+          date_elim: movimientoActual.date_elim,
+          id_modif: movimientoActual.id_modif
+        })
+        .eq("id", movimientoActual.id);
+      await supabaseLeasing.from("modif_movim").delete().eq("id", modificacionCreada.id);
+      throw errorEstado;
+    }
+
+    const esModIngreso = Number(movimientoActual.tipo_movimiento) === 101;
+    const materialPatch = esModIngreso
+      ? {
+          cant: nuevoStock,
+          ubicacion: limpiarTexto(payloadActualizado.ubic_destino)?.toUpperCase() || null,
+          placa: payloadActualizado.placa,
+          sap: sapValor
+        }
+      : {
+          cant: nuevoStock,
+          ubicacion: limpiarTexto(payloadActualizado.ubic_destino)?.toUpperCase() || null
+        };
+
+    const { error: errorMaterialStock } = await supabaseLeasing
+      .from("materiales")
+      .update(materialPatch)
+      .eq("id", movimientoActual.codigo_material);
+
+    if (errorMaterialStock) {
+      await supabaseLeasing
+        .from("movimientos")
+        .update({
+          date_movi: movimientoActual.date_movi,
+          guia: movimientoActual.guia,
+          ubic_destino: movimientoActual.ubic_destino,
+          placa: movimientoActual.placa,
+          cant: movimientoActual.cant,
+          sap: movimientoActual.sap,
+          responsable: movimientoActual.responsable,
+          destinatario: movimientoActual.destinatario,
+          obs: movimientoActual.obs,
+          edit: movimientoActual.edit,
+          estado: movimientoActual.estado,
+          date_elim: movimientoActual.date_elim,
+          id_modif: movimientoActual.id_modif
+        })
+        .eq("id", movimientoActual.id);
+      await supabaseLeasing.from("modif_movim").delete().eq("id", modificacionCreada.id);
+      await actualizarEstadoConStock(movimientoActual.codigo_material, Number(movimientoActual.tipo_movimiento), stockActual, Number(estadoActual?.sap ?? sapValor));
+      throw errorMaterialStock;
+    }
+
     return res.json({
       success: true,
       data: {
         modificacion: modificacionCreada,
-        movimiento: movimientoActualizado
+        movimiento: movimientoActualizado,
+        estado: estadoActualizado
       }
     });
   } catch (error) {
@@ -633,6 +1147,26 @@ router.post("/eliminaciones", async (req, res) => {
       });
     }
 
+    if (Number(movimientoActual.tipo_movimiento) === 101) {
+      const { count: salidasActivas, error: errorConteoSalidas } = await supabaseLeasing
+        .from("movimientos")
+        .select("id", { count: "exact", head: true })
+        .eq("codigo_material", movimientoActual.codigo_material)
+        .eq("estado", 1)
+        .eq("tipo_movimiento", 201);
+
+      if (errorConteoSalidas) {
+        throw errorConteoSalidas;
+      }
+
+      if (Number(salidasActivas || 0) > 0) {
+        return res.status(400).json({
+          success: false,
+          message: "No se puede eliminar el ingreso porque el material ya tiene salidas registradas."
+        });
+      }
+    }
+
     const hoy = new Date().toISOString().slice(0, 10);
 
     const { data: movimientoEliminado, error: errorEliminar } = await supabaseLeasing
@@ -646,9 +1180,17 @@ router.post("/eliminaciones", async (req, res) => {
       throw errorEliminar;
     }
 
+    const { data: syncData, error: errorSync } = await sincronizarDesdeUltimoMovimientoActivo(movimientoActual.codigo_material);
+    if (errorSync) {
+      throw errorSync;
+    }
+
     return res.json({
       success: true,
-      data: { movimiento: movimientoEliminado }
+      data: {
+        movimiento: movimientoEliminado,
+        sincronizacion: syncData
+      }
     });
   } catch (error) {
     console.error("Error eliminar movimiento leasing:", error);
@@ -769,7 +1311,7 @@ router.get("/historial/movimientos", async (req, res) => {
     let query = supabaseLeasing
       .from("movimientos")
       .select(
-        "id, codigo_material, date_movi, date_crea, tipo_movimiento, guia, ubic_destino, placa, responsable, destinatario, obs, edit, estado, date_elim, id_modif, materiales(id, codigo, descripcion)"
+        "id, codigo_material, date_movi, date_crea, tipo_movimiento, guia, ubic_destino, placa, cant, sap, responsable, destinatario, obs, edit, estado, date_elim, id_modif, materiales(id, codigo, descripcion)"
       )
       .order("date_movi", { ascending: false })
       .limit(300);
@@ -820,7 +1362,7 @@ router.get("/historial/modificaciones", async (req, res) => {
     let query = supabaseLeasing
       .from("modif_movim")
       .select(
-        "id, id_movimiento, date_modif, codigo_material, date_movi, date_crea, tipo_movimiento, guia, ubic_destino, placa, responsable, destinatario, obs, materiales(id, codigo, descripcion), movimientos(id, tipo_movimiento, date_movi, responsable)"
+        "id, id_movimiento, date_modif, codigo_material, date_movi, date_crea, tipo_movimiento, guia, ubic_destino, placa, cant, sap, responsable, destinatario, obs, materiales(id, codigo, descripcion), movimientos(id, tipo_movimiento, date_movi, responsable, cant, sap)"
       )
       .order("date_modif", { ascending: false })
       .limit(300);
@@ -860,7 +1402,7 @@ router.get("/materiales/:id", async (req, res) => {
 
 router.put("/materiales/:id", async (req, res) => {
   try {
-    const campos = ["codigo", "descripcion", "referencia", "ubicacion", "placa"];
+    const campos = ["codigo", "descripcion", "referencia", "ubicacion", "placa", "cant", "sap"];
     const payload = {};
 
     for (const campo of campos) {

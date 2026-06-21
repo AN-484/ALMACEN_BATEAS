@@ -23,12 +23,18 @@ function soloNumerosLimitado(valor, limite) {
   return soloDigitos(valor).slice(0, limite);
 }
 
+function cantidadEnteraPositiva(valor) {
+  const n = Number(valor);
+  if (!Number.isInteger(n) || n <= 0) return null;
+  return n;
+}
+
 function descripcionTipoMovimiento(tipo) {
   const tipoNum = Number(tipo);
-  if (tipoNum === 101) return "101 - INGRESO";
-  if (tipoNum === 201) return "201 - SALIDA";
-  if (tipoNum === 301) return "301 - MODIFICACION";
-  if (tipoNum === 401) return "401 - ELIMINACION";
+  if (tipoNum === 101) return "INGRESO";
+  if (tipoNum === 201) return "SALIDA";
+  if (tipoNum === 301) return "MODIFICACION";
+  if (tipoNum === 401) return "ELIMINACION";
   return String(tipo || "-");
 }
 
@@ -71,7 +77,9 @@ export default function Leasing({ funcionInicial }) {
     descripcion: "",
     referencia: "",
     ubicacion: "",
-    placa: ""
+    placa: "",
+    cant: "",
+    sap: false
   });
 
   const [movimiento, setMovimiento] = useState({
@@ -86,6 +94,8 @@ export default function Leasing({ funcionInicial }) {
     date_movi: hoyISO(),
     ubic_destino: "",
     destinatario: "",
+    cant: "",
+    sap: false,
     obs: ""
   });
 
@@ -103,6 +113,8 @@ export default function Leasing({ funcionInicial }) {
     guia: "",
     ubic_destino: "",
     placa: "",
+    cant: "",
+    sap: false,
     destinatario: "",
     obs: ""
   });
@@ -189,7 +201,6 @@ export default function Leasing({ funcionInicial }) {
 
   const seleccionarMaterialSalida = (item) => {
     setMaterialSalida(item);
-    setBusquedaMaterial(`${item.codigo} - ${item.descripcion}`);
     setResultadosMaterial([]);
     setMovimientoSalida((prev) => ({
       ...prev,
@@ -225,7 +236,6 @@ export default function Leasing({ funcionInicial }) {
 
   const seleccionarMovimiento = (item) => {
     setMovimientoOriginal(item);
-    setBusquedaMovimiento(`${item.material?.codigo || ""} - ${item.material?.descripcion || ""}`);
     setResultadosMovimiento([]);
     setMovimientoModificacion({
       date_modif: hoyISO(),
@@ -235,6 +245,8 @@ export default function Leasing({ funcionInicial }) {
       guia: item.guia || "",
       ubic_destino: item.ubic_destino || "",
       placa: item.placa ? String(item.placa) : "",
+      cant: item.cant ? String(item.cant) : "",
+      sap: Number(item.sap) === 1,
       destinatario: item.destinatario || "",
       obs: item.obs || ""
     });
@@ -252,13 +264,23 @@ export default function Leasing({ funcionInicial }) {
         return;
       }
 
+      if (!material.referencia.trim()) {
+        alert("La referencia es obligatoria.");
+        return;
+      }
+
+      if (!material.ubicacion.trim()) {
+        alert("La ubicación es obligatoria.");
+        return;
+      }
+
       if (material.codigo && material.codigo.length !== 10) {
         alert("El código debe tener 10 dígitos o dejarse en blanco para autogenerarlo.");
         return;
       }
 
-      if (material.placa && material.placa.length !== 9) {
-        alert("La placa del material debe tener 9 dígitos.");
+      if (!material.placa || material.placa.length !== 9) {
+        alert("La placa del material es obligatoria y debe tener 9 dígitos.");
         return;
       }
 
@@ -266,6 +288,19 @@ export default function Leasing({ funcionInicial }) {
         alert("La fecha de movimiento es obligatoria.");
         return;
       }
+
+      if (!movimiento.guia.trim()) {
+        alert("La guía es obligatoria.");
+        return;
+      }
+
+      const cantidad = cantidadEnteraPositiva(material.cant);
+      if (!cantidad) {
+        alert("La cantidad debe ser un número entero mayor a 0.");
+        return;
+      }
+
+      const sapValor = material.sap ? 1 : 0;
 
       setGuardando(true);
 
@@ -278,13 +313,17 @@ export default function Leasing({ funcionInicial }) {
           descripcion: material.descripcion.trim().toUpperCase(),
           referencia: material.referencia.trim() || null,
           ubicacion: ubicacionNormalizada,
-          placa: placaMaterialNumero
+          placa: placaMaterialNumero,
+          cant: cantidad,
+          sap: sapValor
         },
         movimiento: {
           date_movi: movimiento.date_movi,
           guia: movimiento.guia.trim() || null,
           ubic_destino: ubicacionNormalizada,
           placa: placaMaterialNumero,
+          cant: cantidad,
+          sap: sapValor,
           obs: movimiento.obs.trim() || null
         }
       };
@@ -298,7 +337,9 @@ export default function Leasing({ funcionInicial }) {
           descripcion: "",
           referencia: "",
           ubicacion: "",
-          placa: ""
+          placa: "",
+          cant: "",
+          sap: false
         });
         setMovimiento({
           date_movi: hoyISO(),
@@ -338,6 +379,19 @@ export default function Leasing({ funcionInicial }) {
         return;
       }
 
+      if (!movimientoSalida.destinatario.trim()) {
+        alert("El usuario destinatario es obligatorio.");
+        return;
+      }
+
+      const cantidad = cantidadEnteraPositiva(movimientoSalida.cant);
+      if (!cantidad) {
+        alert("La cantidad debe ser un número entero mayor a 0.");
+        return;
+      }
+
+      const sapValor = movimientoSalida.sap ? 1 : 0;
+
       setGuardando(true);
 
       const payload = {
@@ -345,6 +399,8 @@ export default function Leasing({ funcionInicial }) {
           codigo_material: materialSalida.id,
           date_movi: movimientoSalida.date_movi,
           ubic_destino: movimientoSalida.ubic_destino.trim().toUpperCase(),
+          cant: cantidad,
+          sap: sapValor,
           destinatario: movimientoSalida.destinatario.trim() || null,
           obs: movimientoSalida.obs.trim() || null
         }
@@ -361,6 +417,8 @@ export default function Leasing({ funcionInicial }) {
           date_movi: hoyISO(),
           ubic_destino: "",
           destinatario: "",
+          cant: "",
+          sap: false,
           obs: ""
         });
       }
@@ -400,7 +458,6 @@ export default function Leasing({ funcionInicial }) {
 
   const seleccionarMovimientoElim = (item) => {
     setMovimientoAEliminar(item);
-    setBusquedaEliminacion(`${item.material?.codigo || ""} - ${item.material?.descripcion || ""}`);
     setResultadosEliminacion([]);
   };
 
@@ -469,15 +526,28 @@ export default function Leasing({ funcionInicial }) {
         return;
       }
 
+      const cantidad = cantidadEnteraPositiva(movimientoModificacion.cant);
+      if (!cantidad) {
+        alert("La cantidad debe ser un número entero mayor a 0.");
+        return;
+      }
+
+      const sapValor = movimientoModificacion.sap ? 1 : 0;
+
       setGuardando(true);
 
       const payload = {
         id_movimiento: movimientoOriginal.id,
         movimiento: {
           date_movi: movimientoModificacion.date_movi,
-          guia: movimientoModificacion.guia.trim() || null,
+          guia:
+            Number(movimientoOriginal.tipo_movimiento) === 201
+              ? movimientoOriginal.guia || null
+              : movimientoModificacion.guia.trim() || null,
           ubic_destino: movimientoModificacion.ubic_destino.trim().toUpperCase() || null,
           placa: movimientoModificacion.placa ? Number(movimientoModificacion.placa) : null,
+          cant: cantidad,
+          sap: sapValor,
           destinatario:
             Number(movimientoOriginal.tipo_movimiento) === 201
               ? movimientoModificacion.destinatario.trim() || null
@@ -501,6 +571,8 @@ export default function Leasing({ funcionInicial }) {
           guia: "",
           ubic_destino: "",
           placa: "",
+          cant: "",
+          sap: false,
           destinatario: "",
           obs: ""
         });
@@ -594,7 +666,7 @@ export default function Leasing({ funcionInicial }) {
                 />
               </Campo>
 
-              <Campo label="Referencia">
+              <Campo label="Referencia (obligatoria)">
                 <input
                   value={material.referencia}
                   onChange={(e) => actualizarMaterial("referencia", e.target.value.toUpperCase())}
@@ -603,7 +675,7 @@ export default function Leasing({ funcionInicial }) {
                 />
               </Campo>
 
-              <Campo label="Ubicación">
+              <Campo label="Ubicación (obligatoria)">
                 <input
                   value={material.ubicacion}
                   onChange={(e) => actualizarMaterial("ubicacion", e.target.value.toUpperCase())}
@@ -612,7 +684,7 @@ export default function Leasing({ funcionInicial }) {
                 />
               </Campo>
 
-              <Campo label="Placa material:">
+              <Campo label="Placa material (obligatoria):">
                 <input
                   value={material.placa}
                   onChange={(e) => actualizarMaterial("placa", soloNumerosLimitado(e.target.value, 9))}
@@ -620,6 +692,26 @@ export default function Leasing({ funcionInicial }) {
                   style={input}
                   maxLength={9}
                 />
+              </Campo>
+
+              <Campo label="Cantidad">
+                <input
+                  value={material.cant}
+                  onChange={(e) => actualizarMaterial("cant", soloDigitos(e.target.value))}
+                  placeholder="Ejemplo: 1"
+                  style={input}
+                />
+              </Campo>
+
+              <Campo label="SAP">
+                <label style={checkLabel}>
+                  <input
+                    type="checkbox"
+                    checked={material.sap}
+                    onChange={(e) => actualizarMaterial("sap", e.target.checked)}
+                  />
+                  Marcado = 1 / No marcado = 0
+                </label>
               </Campo>
             </div>
 
@@ -635,7 +727,7 @@ export default function Leasing({ funcionInicial }) {
                 />
               </Campo>
 
-              <Campo label="Guía">
+              <Campo label="Guía (obligatoria)">
                 <input
                   value={movimiento.guia}
                   onChange={(e) => actualizarMovimiento("guia", e.target.value.toUpperCase())}
@@ -700,7 +792,7 @@ export default function Leasing({ funcionInicial }) {
                       style={resultadoBtn}
                     >
                       <b>{item.codigo}</b> - {item.descripcion}
-                      <span style={resultadoMeta}>ID: {item.id} | Placa: {item.placa || "-"}</span>
+                      <span style={resultadoMeta}>ID: {item.id} | Stock: {item.stock ?? item.cant ?? "-"} | Placa: {item.placa || "-"}</span>
                     </button>
                   ))}
                 </div>
@@ -734,6 +826,14 @@ export default function Leasing({ funcionInicial }) {
                 />
               </Campo>
 
+              <Campo label="Stock actual">
+                <input
+                  value={materialSalida?.stock ?? materialSalida?.cant ?? ""}
+                  readOnly
+                  style={inputReadonly}
+                />
+              </Campo>
+
               <Campo label="Fecha de movimiento">
                 <input
                   type="date"
@@ -743,7 +843,27 @@ export default function Leasing({ funcionInicial }) {
                 />
               </Campo>
 
-              <Campo label="Ubic / Destino">
+              <Campo label="Cantidad">
+                <input
+                  value={movimientoSalida.cant}
+                  onChange={(e) => actualizarMovimientoSalida("cant", soloDigitos(e.target.value))}
+                  placeholder="Ejemplo: 1"
+                  style={input}
+                />
+              </Campo>
+
+              <Campo label="SAP">
+                <label style={checkLabel}>
+                  <input
+                    type="checkbox"
+                    checked={movimientoSalida.sap}
+                    onChange={(e) => actualizarMovimientoSalida("sap", e.target.checked)}
+                  />
+                  Marcado = 1 / No marcado = 0
+                </label>
+              </Campo>
+
+              <Campo label="Ubic / Destino (obligatoria)">
                 <input
                   value={movimientoSalida.ubic_destino}
                   onChange={(e) => actualizarMovimientoSalida("ubic_destino", e.target.value.toUpperCase())}
@@ -760,7 +880,7 @@ export default function Leasing({ funcionInicial }) {
                 />
               </Campo>
 
-              <Campo label="Usuario Destinatario">
+              <Campo label="Usuario Destinatario (obligatorio)">
                 <input
                   value={movimientoSalida.destinatario}
                   onChange={(e) => actualizarMovimientoSalida("destinatario", e.target.value.toUpperCase())}
@@ -888,13 +1008,15 @@ export default function Leasing({ funcionInicial }) {
                 />
               </Campo>
 
-              <Campo label="Guía">
-                <input
-                  value={movimientoModificacion.guia}
-                  onChange={(e) => actualizarMovimientoModificacion("guia", e.target.value.toUpperCase())}
-                  style={input}
-                />
-              </Campo>
+              {Number(movimientoOriginal?.tipo_movimiento) !== 201 ? (
+                <Campo label="Guía">
+                  <input
+                    value={movimientoModificacion.guia}
+                    onChange={(e) => actualizarMovimientoModificacion("guia", e.target.value.toUpperCase())}
+                    style={input}
+                  />
+                </Campo>
+              ) : null}
 
               <Campo label="Ubic / Destino">
                 <input
@@ -911,6 +1033,25 @@ export default function Leasing({ funcionInicial }) {
                   maxLength={9}
                   style={input}
                 />
+              </Campo>
+
+              <Campo label="Cantidad">
+                <input
+                  value={movimientoModificacion.cant}
+                  onChange={(e) => actualizarMovimientoModificacion("cant", soloDigitos(e.target.value))}
+                  style={input}
+                />
+              </Campo>
+
+              <Campo label="SAP">
+                <label style={checkLabel}>
+                  <input
+                    type="checkbox"
+                    checked={movimientoModificacion.sap}
+                    onChange={(e) => actualizarMovimientoModificacion("sap", e.target.checked)}
+                  />
+                  Marcado = 1 / No marcado = 0
+                </label>
               </Campo>
 
               <Campo label="Responsable">
@@ -1026,6 +1167,9 @@ export default function Leasing({ funcionInicial }) {
                           <span style={resultadoMetaSec}>
                             Responsable: {nombreResponsable(item.responsable, item.responsable_nombre)} | Ubicación: {item.ubic_destino || item.ubicacion || "-"} | Placa: {item.placa || item.material?.placa || "-"}
                           </span>
+                          <span style={resultadoMetaSec}>
+                            Cantidad: {item.cant ?? "-"} | SAP: {Number(item.sap) === 1 ? "Si=1" : "No=0"}
+                          </span>
                           {Number(item.tipo_movimiento) === 201 ? (
                             <span style={resultadoMetaSec}>Destinatario: {item.destinatario || "-"}</span>
                           ) : null}
@@ -1040,13 +1184,15 @@ export default function Leasing({ funcionInicial }) {
                     <div style={divider}></div>
 
                     <div style={{ ...summaryBox, background: "#fdf2f2", border: "1px solid #f5c6cb" }}>
-                      <div><b>Movimiento:</b> {movimientoAEliminar.id}</div>
+                      {/* <div><b>Movimiento:</b> {movimientoAEliminar.id}</div> */}
                       <div><b>Material:</b> {movimientoAEliminar.material?.descripcion || movimientoAEliminar.codigo_material}</div>
                       <div><b>Tipo:</b> {descripcionTipoMovimiento(movimientoAEliminar.tipo_movimiento)}</div>
                       <div><b>Fecha movimiento:</b> {movimientoAEliminar.date_movi}</div>
                       <div><b>Responsable:</b> {nombreResponsable(movimientoAEliminar.responsable, movimientoAEliminar.responsable_nombre)}</div>
                       <div><b>Ubicación:</b> {movimientoAEliminar.ubic_destino || movimientoAEliminar.ubicacion || "-"}</div>
                       <div><b>Placa:</b> {movimientoAEliminar.placa || movimientoAEliminar.material?.placa || "-"}</div>
+                      <div><b>Cantidad:</b> {movimientoAEliminar.cant ?? "-"}</div>
+                      <div><b>SAP:</b> {Number(movimientoAEliminar.sap) === 1 ? "Si" : "No"}</div>
                       {Number(movimientoAEliminar.tipo_movimiento) === 201 ? (
                         <div><b>Destinatario:</b> {movimientoAEliminar.destinatario || "-"}</div>
                       ) : null}
@@ -1188,6 +1334,14 @@ const campoLabel = {
   fontSize: "13px",
   color: "#4a5568",
   fontWeight: 700
+};
+
+const checkLabel = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  fontSize: "13px",
+  color: "#4a5568"
 };
 
 const input = {
