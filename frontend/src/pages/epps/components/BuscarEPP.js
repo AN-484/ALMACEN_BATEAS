@@ -229,18 +229,18 @@ const btnBase = {
 
 const btnBuscar = {
   ...btnBase,
-  background: "#273c75"
+  background: "#b8682a"
 };
 
 const btnDisabled = {
   ...btnBuscar,
-  background: "#718093",
+  background: "#b9a291",
   cursor: "not-allowed"
 };
 
 const btnCamara = {
   ...btnBase,
-  background: "linear-gradient(135deg, #40739e, #27752b)",
+  background: "linear-gradient(135deg, #c67a36, #9a7f36)",
   display: "flex",
   alignItems: "center",
   gap: "8px"

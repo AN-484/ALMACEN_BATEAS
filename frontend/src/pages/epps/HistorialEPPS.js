@@ -310,7 +310,7 @@ const btnActualizar = {
   padding: "10px 14px",
   border: "none",
   borderRadius: "8px",
-  background: "#273c75",
+  background: "#b8682a",
   color: "white",
   cursor: "pointer",
   fontWeight: "bold"
@@ -378,7 +378,7 @@ const btnGuardar = {
   padding: "11px 16px",
   border: "none",
   borderRadius: "8px",
-  background: "#273c75",
+  background: "#b8682a",
   color: "white",
   cursor: "pointer",
   fontWeight: "bold"
@@ -386,6 +386,6 @@ const btnGuardar = {
 
 const btnDisabled = {
   ...btnGuardar,
-  background: "#718093",
+  background: "#b9a291",
   cursor: "not-allowed"
 };

@@ -119,13 +119,12 @@ function formatearFecha(fecha) {
 }
 
 function badge(estado) {
-  let bg = '#718093';
+  let bg = '#b9a291';
   let col = 'white';
 
-  if (estado === 'S1') bg = '#fbc531';
-  if (estado === 'S2') bg = '#0097e6';
-  if (estado === 'S3') bg = '#44bd32';
-  if (estado === 'S1') col = 'black';
+  if (estado === 'S1') bg = '#d19a4b';
+  if (estado === 'S2') bg = '#b8682a';
+  if (estado === 'S3') bg = '#4b8f4f';
 
   return {
     background: bg,
@@ -159,7 +158,7 @@ const fecha = {
 
 const titulo = {
   margin: '14px 0 8px',
-  color: '#273c75'
+  color: '#8f4f1f'
 };
 
 const info = {
@@ -178,7 +177,7 @@ const btnVer = {
   padding: '9px 12px',
   border: 'none',
   borderRadius: '7px',
-  background: '#273c75',
+  background: '#b8682a',
   color: 'white',
   cursor: 'pointer'
 };

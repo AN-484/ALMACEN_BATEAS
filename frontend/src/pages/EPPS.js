@@ -11,41 +11,89 @@ export default function EPPS() {
 
   return (
     <Layout>
-      <h2>🦺 Módulo EPPS</h2>
+      <div style={page}>
+        <div style={headerCard}>
+          <div>
+            <h2 style={{ margin: 0 }}>🦺 Módulo EPPS</h2>
+            <p style={headerSubtitle}>Gestión de solicitudes MEPPs y flujo de aprobación.</p>
+          </div>
 
-      <div style={tabs}>
-        <button
-          onClick={() => setVista("historial")}
-          style={vista === "historial" ? btnActivo : btn}
-        >
-          Mis solicitudes
-        </button>
+          <div style={headerActions}>
+            <span style={headerTag}>MEPPs</span>
+          </div>
+        </div>
 
-        <button
-          onClick={() => setVista("solicitar")}
-          style={vista === "solicitar" ? btnActivo : btn}
-        >
-          Nueva solicitud
-        </button>
-
-        {puedeDatos && (
+        <div style={tabs}>
           <button
-            onClick={() => setVista("admin")}
-            style={vista === "admin" ? btnAdminActivo : btnAdmin}
+            onClick={() => setVista("historial")}
+            style={vista === "historial" ? btnActivo : btn}
           >
-            ⚙️ Pendientes
+            Mis solicitudes
           </button>
-        )}
-      </div>
 
-      {vista === "historial" && <HistorialEPPS />}
-      {vista === "solicitar" && (
-        <SolicitarEPPS onCreado={() => setVista("historial")} />
-      )}
-      {vista === "admin" && puedeDatos && <AdminEPPS />}
+          <button
+            onClick={() => setVista("solicitar")}
+            style={vista === "solicitar" ? btnActivo : btn}
+          >
+            Nueva solicitud
+          </button>
+
+          {puedeDatos && (
+            <button
+              onClick={() => setVista("admin")}
+              style={vista === "admin" ? btnAdminActivo : btnAdmin}
+            >
+              ⚙️ Pendientes
+            </button>
+          )}
+        </div>
+
+        {vista === "historial" && <HistorialEPPS />}
+        {vista === "solicitar" && (
+          <SolicitarEPPS onCreado={() => setVista("historial")} />
+        )}
+        {vista === "admin" && puedeDatos && <AdminEPPS />}
+      </div>
     </Layout>
   );
 }
+
+const page = {
+  display: "grid",
+  gap: "16px"
+};
+
+const headerCard = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  flexWrap: "wrap",
+  background: "linear-gradient(135deg, #8f4f1f 0%, #c77c38 100%)",
+  color: "white",
+  padding: "18px 20px",
+  borderRadius: "16px",
+  boxShadow: "0 10px 30px rgba(143,79,31,0.24)"
+};
+
+const headerSubtitle = {
+  margin: "6px 0 0",
+  color: "#fff6eb"
+};
+
+const headerActions = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap"
+};
+
+const headerTag = {
+  background: "rgba(255,255,255,0.18)",
+  border: "1px solid rgba(255,255,255,0.35)",
+  borderRadius: "999px",
+  padding: "7px 12px",
+  fontWeight: "bold"
+};
 
 const tabs = {
   display: "flex",
@@ -58,24 +106,24 @@ const btn = {
   padding: "10px 14px",
   border: "none",
   borderRadius: "6px",
-  background: "#718093",
+  background: "#b9a291",
   color: "white",
   cursor: "pointer"
 };
 
 const btnActivo = {
   ...btn,
-  background: "#273c75"
+  background: "#b8682a"
 };
 
 const btnAdmin = {
   ...btn,
-  background: "#353b48",
+  background: "#8a5a34",
   fontWeight: "bold"
 };
 
 const btnAdminActivo = {
   ...btnAdmin,
-  background: "#e1b12c",
-  color: "#000"
+  background: "#d18b47",
+  color: "white"
 };

@@ -644,14 +644,14 @@ const btn = {
   padding: "10px 14px",
   border: "none",
   borderRadius: "8px",
-  background: "#718093",
+  background: "#b9a291",
   color: "white",
   cursor: "pointer"
 };
 
 const btnActivo = {
   ...btn,
-  background: "#273c75"
+  background: "#b8682a"
 };
 
 const header = {
@@ -702,7 +702,7 @@ const btnAzul = {
   padding: "10px 14px",
   border: "none",
   borderRadius: "8px",
-  background: "#273c75",
+  background: "#b8682a",
   color: "white",
   cursor: "pointer",
   fontWeight: "bold"
@@ -738,7 +738,7 @@ const tabla = {
 };
 
 const th = {
-  background: "#273c75",
+  background: "#b8682a",
   color: "white",
   padding: "10px",
   textAlign: "left",

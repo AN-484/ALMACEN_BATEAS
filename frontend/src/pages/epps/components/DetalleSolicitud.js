@@ -121,7 +121,7 @@ const btnCerrar = {
   padding: "9px 12px",
   border: "none",
   borderRadius: "7px",
-  background: "#718093",
+  background: "#b9a291",
   color: "white",
   cursor: "pointer"
 };
@@ -166,7 +166,7 @@ const tabla = {
 };
 
 const th = {
-  background: "#273c75",
+  background: "#b8682a",
   color: "white",
   padding: "10px",
   textAlign: "left",

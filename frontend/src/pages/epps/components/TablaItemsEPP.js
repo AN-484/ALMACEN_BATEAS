@@ -85,7 +85,7 @@ const tabla = {
 };
 
 const th = {
-  background: "#273c75",
+  background: "#b8682a",
   color: "white",
   padding: "10px",
   textAlign: "left",
