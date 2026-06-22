@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "../../services/api";
 import { verObservacion } from "../../utils/observaciones";
+import { SccoInlineLoading, SccoSectionLoading } from "../../components/SccoLoading";
+import SccoComboBox from "../../components/SccoComboBox";
 
 export default function EstadoCilindros() {
   const [datos, setDatos] = useState([]);
@@ -13,49 +15,58 @@ export default function EstadoCilindros() {
   const [producto, setProducto] = useState("");
   const [propietario, setPropietario] = useState("");
   const [estado, setEstado] = useState("");
+  const [cargandoPantalla, setCargandoPantalla] = useState(true);
+  const [cargando, setCargando] = useState(false);
 
-  const cargarCombos = async () => {
-    try {
-      const prod = await apiGet("/api/cilindros/productos");
-      const prop = await apiGet("/api/cilindros/propietarios");
-      const cils = await apiGet("/api/cilindros");
-      const ubi = await apiGet("/api/cilindros/ubicaciones");
-      const tipos = await apiGet("/api/cilindros/tipos-estado");
+  // Carga inicial: todos los datos en paralelo, tabla visible solo cuando todo está listo
+  useEffect(() => {
+    const cargarTodo = async () => {
+      setCargandoPantalla(true);
+      try {
+        const [prod, prop, cils, ubi, tipos, estadoData] = await Promise.all([
+          apiGet("/api/cilindros/productos"),
+          apiGet("/api/cilindros/propietarios"),
+          apiGet("/api/cilindros"),
+          apiGet("/api/cilindros/ubicaciones"),
+          apiGet("/api/cilindros/tipos-estado"),
+          apiGet("/api/cilindros/estado")
+        ]);
+        setProductos(prod);
+        setPropietarios(prop);
+        setCilindros(cils);
+        setUbicaciones(ubi);
+        setTiposEstado(tipos);
+        setDatos(estadoData);
+      } catch (error) {
+        console.error(error);
+        alert("No se pudieron cargar los datos");
+      } finally {
+        setCargandoPantalla(false);
+      }
+    };
+    cargarTodo();
+  }, []);
 
-      setProductos(prod);
-      setPropietarios(prop);
-      setCilindros(cils);
-      setUbicaciones(ubi);
-      setTiposEstado(tipos);
-    } catch (error) {
-      console.error(error);
-      alert("No se pudieron cargar filtros");
-    }
-  };
-
+  // Búsqueda con filtros (botón Buscar)
   const cargarDatos = async () => {
+    if (cargando) return;
     try {
+      setCargando(true);
       let url = "/api/cilindros/estado?";
       const params = [];
-
-      if (producto) params.push(`producto=${producto}`);
-      if (propietario) params.push(`propietario=${propietario}`);
-      if (estado) params.push(`estado=${estado}`);
-
+      if (producto) params.push(`producto=${encodeURIComponent(producto)}`);
+      if (propietario) params.push(`propietario=${encodeURIComponent(propietario)}`);
+      if (estado) params.push(`estado=${encodeURIComponent(estado)}`);
       url += params.join("&");
-
       const res = await apiGet(url);
       setDatos(res);
     } catch (error) {
       console.error(error);
       alert("No se pudo cargar estado de cilindros");
+    } finally {
+      setCargando(false);
     }
   };
-
-  useEffect(() => {
-    cargarCombos();
-    cargarDatos();
-  }, []);
 
   const nombreProducto = (codigo) => {
     const item = productos.find(p => p.codigo === codigo);
@@ -168,51 +179,54 @@ const calcularAlertaHidro = (fechaHidro) => {
     }
     };
 
+  const opcionesEstado = [
+    { value: "ST", label: "STOCK" },
+    { value: "VA", label: "VACÍO" },
+    { value: "US", label: "EN CLIENTE" },
+    { value: "RE", label: "EN PROVEEDOR" }
+  ];
+
   return (
     <div>
+      {cargandoPantalla ? (
+        <SccoSectionLoading message="Cargando estado de cilindros..." />
+      ) : (
+        <>
       <h3>Estado de Cilindros</h3>
 
       <div style={filtros}>
-        <select
+        <SccoComboBox
+          options={productos.map(p => ({ value: p.codigo, label: p.nombre }))}
           value={producto}
-          onChange={(e) => setProducto(e.target.value.toUpperCase())}
-          style={input}
-        >
-          <option value="">Todos los productos</option>
-          {productos.map(p => (
-            <option key={p.codigo} value={p.codigo}>
-              {p.nombre}
-            </option>
-          ))}
-        </select>
+          onChange={setProducto}
+          placeholder="Todos los productos"
+          disabled={cargando}
+          emptyLabel="Todos los productos"
+          wrapperStyle={{ minWidth: "180px" }}
+        />
 
-        <select
+        <SccoComboBox
+          options={propietarios.map(p => ({ value: p.codigo, label: p.nombre }))}
           value={propietario}
-          onChange={(e) => setPropietario(e.target.value.toUpperCase())}
-          style={input}
-        >
-          <option value="">Todos los propietarios</option>
-          {propietarios.map(p => (
-            <option key={p.codigo} value={p.codigo}>
-              {p.nombre}
-            </option>
-          ))}
-        </select>
+          onChange={setPropietario}
+          placeholder="Todos los propietarios"
+          disabled={cargando}
+          emptyLabel="Todos los propietarios"
+          wrapperStyle={{ minWidth: "180px" }}
+        />
 
-        <select
+        <SccoComboBox
+          options={opcionesEstado}
           value={estado}
-          onChange={(e) => setEstado(e.target.value.toUpperCase())}
-          style={input}
-        >
-          <option value="">Todos los estados</option>
-          <option value="ST">STOCK</option>
-          <option value="VA">VACIO</option>
-          <option value="US">EN CLIENTE</option>
-          <option value="RE">EN PROVEEDOR</option>
-        </select>
+          onChange={setEstado}
+          placeholder="Todos los estados"
+          disabled={cargando}
+          emptyLabel="Todos los estados"
+          wrapperStyle={{ minWidth: "180px" }}
+        />
 
-        <button onClick={cargarDatos} style={btn}>
-          Buscar
+        <button onClick={cargarDatos} style={btn} disabled={cargando}>
+          {cargando ? <SccoInlineLoading message="Buscando..." /> : "Buscar"}
         </button>
       </div>
 
@@ -298,6 +312,8 @@ const calcularAlertaHidro = (fechaHidro) => {
       {datos.length === 0 && (
         <p>No hay datos para mostrar.</p>
       )}
+        </>
+      )}
     </div>
   );
 }
@@ -379,7 +395,7 @@ const btn = {
   padding: "10px 15px",
   border: "none",
   borderRadius: "6px",
-  background: "#273c75",
+  background: "#1f7a4d",
   color: "white",
   cursor: "pointer"
 };
@@ -397,7 +413,7 @@ const tabla = {
 };
 
 const th = {
-  background: "#273c75",
+  background: "#1f7a4d",
   color: "white",
   padding: "10px",
   textAlign: "left",
@@ -414,7 +430,7 @@ const btnObs = {
   padding: "6px 10px",
   border: "none",
   borderRadius: "6px",
-  background: "#40739e",
+  background: "#2d8c5a",
   color: "white",
   cursor: "pointer"
 };

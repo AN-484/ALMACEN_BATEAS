@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiGet, apiPost } from "../../services/api";
+import { SccoInlineLoading, SccoPageLoading } from "../../components/SccoLoading";
+import SccoComboBox from "../../components/SccoComboBox";
 
 export default function IngresoRecarga() {
   const [tipo, setTipo] = useState("M001");
@@ -23,12 +25,15 @@ export default function IngresoRecarga() {
   const [estadoInfo, setEstadoInfo] = useState("");
   const [obs, setObs] = useState("");
   const [bloquearDatosCilindro, setBloquearDatosCilindro] = useState(false);
+  const [cargandoPantalla, setCargandoPantalla] = useState(true);
+  const [procesando, setProcesando] = useState(false);
 
   const codigoUsuario = localStorage.getItem("codigo");
   const nombreUsuario = localStorage.getItem("nombre");
 
   const cargarCombos = async () => {
     try {
+      setCargandoPantalla(true);
       const prod = await apiGet("/api/cilindros/productos");
       const prop = await apiGet("/api/cilindros/propietarios");
       const ubi = await apiGet("/api/cilindros/ubicaciones");
@@ -43,6 +48,8 @@ export default function IngresoRecarga() {
     } catch (error) {
       console.error(error);
       alert("No se pudieron cargar datos");
+    } finally {
+      setCargandoPantalla(false);
     }
   };
 
@@ -69,9 +76,10 @@ export default function IngresoRecarga() {
   };
 
   const verificarCilindro = async () => {
-    if (!cilindro.trim()) return;
+    if (!cilindro.trim() || procesando) return;
 
     try {
+      setProcesando(true);
       const cil = await apiGet(`/api/cilindros/buscar/${cilindro.trim()}`);
       const est = await apiGet(`/api/cilindros/estado/${cilindro.trim()}`);
 
@@ -97,10 +105,14 @@ export default function IngresoRecarga() {
     } catch (error) {
       console.error(error);
       alert("No se pudo verificar el cilindro");
+    } finally {
+      setProcesando(false);
     }
   };
 
   const guardar = async () => {
+    if (procesando) return;
+
     try {
       if (!cilindro.trim()) {
         alert("Ingrese código de cilindro");
@@ -132,6 +144,8 @@ export default function IngresoRecarga() {
         return;
       }
 
+      setProcesando(true);
+
       const payload = {
         fecha,
         cilindro: cilindro.trim(),
@@ -158,6 +172,8 @@ export default function IngresoRecarga() {
     } catch (error) {
       console.error(error);
       alert("Error al registrar movimiento");
+    } finally {
+      setProcesando(false);
     }
   };
 
@@ -178,12 +194,16 @@ export default function IngresoRecarga() {
 
   return (
     <div style={card}>
+      {cargandoPantalla || procesando ? (
+        <SccoPageLoading message={procesando ? "Procesando movimiento..." : "Cargando datos SCCO..."} />
+      ) : null}
       <h3>Ingreso / Recarga</h3>
 
       <div style={tipoBox}>
         <button
           onClick={() => setTipo("M001")}
           style={tipo === "M001" ? btnIngresoActivo : btnTipo}
+          disabled={procesando}
         >
           📥 INGRESO
         </button>
@@ -191,6 +211,7 @@ export default function IngresoRecarga() {
         <button
           onClick={() => setTipo("M004")}
           style={tipo === "M004" ? btnRecargaActivo : btnTipo}
+          disabled={procesando}
         >
           🔄 RECARGA
         </button>
@@ -213,41 +234,31 @@ export default function IngresoRecarga() {
             onChange={(e) => setCilindro(e.target.value.toUpperCase())}
             onBlur={verificarCilindro}
             placeholder="Ejemplo: C001"
+            disabled={procesando}
             style={input}
           />
         </Campo>
 
         <Campo label="Propietario">
-          <select
+          <SccoComboBox
+            options={propietarios.map(p => ({ value: p.codigo, label: p.nombre }))}
             value={propietario}
-            onChange={(e) => setPropietario(e.target.value.toUpperCase())}
+            onChange={setPropietario}
             disabled={bloquearDatosCilindro}
-            style={input}
-          >
-            <option value="">Seleccione</option>
-            {propietarios.map(p => (
-              <option key={p.codigo} value={p.codigo}>
-                {p.nombre}
-              </option>
-            ))}
-          </select>
+            placeholder="Seleccione propietario"
+            emptyLabel="Seleccione propietario"
+          />
         </Campo>
 
         <Campo label="Producto">
-          <select
+          <SccoComboBox
+            options={productos.map(p => ({ value: p.codigo, label: p.nombre }))}
             value={producto}
-            onChange={(e) => setProducto(e.target.value.toUpperCase())}
+            onChange={setProducto}
             disabled={bloquearDatosCilindro}
-            style={input}
-          >
-            <option value="">Seleccione</option>
-            {productos.map(p => (
-              <option key={p.codigo} value={p.codigo}>
-                {/* {p.codigo} - {p.nombre} */}
-                {p.nombre}
-              </option>
-            ))}
-          </select>
+            placeholder="Seleccione producto"
+            emptyLabel="Seleccione producto"
+          />
         </Campo>
 
         <Campo label="Fecha Hidrostática">
@@ -266,6 +277,7 @@ export default function IngresoRecarga() {
             value={guia}
             onChange={(e) => setGuia(e.target.value.toUpperCase())}
             placeholder="Número de guía"
+            disabled={procesando}
             style={input}
           />
         </Campo>
@@ -277,23 +289,20 @@ export default function IngresoRecarga() {
             maxLength={10}
             onChange={(e) => setNroDocumento(e.target.value.toUpperCase())}
             placeholder="Número documento"
+            disabled={procesando}
             style={input}
           />
         </Campo>
 
         <Campo label="Transportista">
-          <select
+          <SccoComboBox
+            options={transportistas.map(t => ({ value: t.codigo, label: t.nombre }))}
             value={transportista}
-            onChange={(e) => setTransportista(e.target.value.toUpperCase())}
-            style={input}
-          >
-            <option value="">Seleccione</option>
-            {transportistas.map(t => (
-              <option key={t.codigo} value={t.codigo}>
-                {t.nombre}
-              </option>
-            ))}
-          </select>
+            onChange={setTransportista}
+            disabled={procesando}
+            placeholder="Seleccione transportista"
+            emptyLabel="Seleccione transportista"
+          />
         </Campo>
 
         <Campo label="Registrado por">
@@ -310,6 +319,7 @@ export default function IngresoRecarga() {
             value={obs}
             onChange={(e) => setObs(e.target.value.toUpperCase())}
             placeholder="Escriba alguna ocurrencia..."
+            disabled={procesando}
             style={textarea}
           />
         </Campo>
@@ -322,11 +332,11 @@ export default function IngresoRecarga() {
       )}
 
       <div style={acciones}>
-        <button onClick={guardar} style={btnGuardar}>
-          Guardar
+        <button onClick={guardar} style={btnGuardar} disabled={procesando}>
+          {procesando ? <SccoInlineLoading message="Guardando..." /> : "Guardar"}
         </button>
 
-        <button onClick={limpiar} style={btnLimpiar}>
+        <button onClick={limpiar} style={btnLimpiar} disabled={procesando}>
           Limpiar
         </button>
       </div>
@@ -360,19 +370,19 @@ const btnTipo = {
   padding: "10px 15px",
   border: "none",
   borderRadius: "6px",
-  background: "#718093",
+  background: "#7a9588",
   color: "white",
   cursor: "pointer"
 };
 
 const btnIngresoActivo = {
   ...btnTipo,
-  background: "#44bd32"
+  background: "#0984e3"
 };
 
 const btnRecargaActivo = {
   ...btnTipo,
-  background: "#e1b12c"
+  background: "#00b4d8"
 };
 
 const grid = {
@@ -420,7 +430,7 @@ const btnGuardar = {
   padding: "10px 20px",
   border: "none",
   borderRadius: "6px",
-  background: "#273c75",
+  background: "#1f7a4d",
   color: "white",
   cursor: "pointer",
   fontWeight: "bold"

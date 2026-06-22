@@ -2,32 +2,57 @@ import { useEffect, useState } from "react";
 import { apiGet } from "../../services/api";
 import { verObservacion,
   obtenerContenidoObservacion } from "../../utils/observaciones";
+import { SccoInlineLoading, SccoPageLoading } from "../../components/SccoLoading";
+import SccoComboBox from "../../components/SccoComboBox";
 
 export default function ReportesCilindros() {
   const [vista, setVista] = useState("ingresos");
+  const [cambiandoVista, setCambiandoVista] = useState(false);
+  const [esMovil, setEsMovil] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const onResize = () => setEsMovil(window.innerWidth <= 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const onCambiarVista = (nuevaVista) => {
+    if (nuevaVista === vista || cambiandoVista) return;
+
+    setCambiandoVista(true);
+    setVista(nuevaVista);
+
+    setTimeout(() => {
+      setCambiandoVista(false);
+    }, 350);
+  };
 
   return (
     <div style={card}>
+      {cambiandoVista ? <SccoPageLoading message="Cargando reporte SCCO..." /> : null}
       <h3>Reportes de Cilindros</h3>
 
-      <div style={tabs}>
+      <div style={tabs(esMovil)}>
         <button
-          style={vista === "ingresos" ? btnActivo : btn}
-          onClick={() => setVista("ingresos")}
+          style={vista === "ingresos" ? btnActivo(esMovil) : btn(esMovil)}
+          onClick={() => onCambiarVista("ingresos")}
+          disabled={cambiandoVista}
         >
           Ingresos / Recargas
         </button>
 
         <button
-          style={vista === "movimientos" ? btnActivo : btn}
-          onClick={() => setVista("movimientos")}
+          style={vista === "movimientos" ? btnActivo(esMovil) : btn(esMovil)}
+          onClick={() => onCambiarVista("movimientos")}
+          disabled={cambiandoVista}
         >
           Despachos / Devoluciones
         </button>
 
         <button
-          style={vista === "kardex" ? btnActivo : btn}
-          onClick={() => setVista("kardex")}
+          style={vista === "kardex" ? btnActivo(esMovil) : btn(esMovil)}
+          onClick={() => onCambiarVista("kardex")}
+          disabled={cambiandoVista}
         >
           Kardex
         </button>
@@ -42,6 +67,7 @@ export default function ReportesCilindros() {
 
 function ReporteIngresos() {
   const [datos, setDatos] = useState([]);
+  const [cargando, setCargando] = useState(false);
 
   const [productos, setProductos] = useState([]);
   const [transportistas, setTransportistas] = useState([]);
@@ -67,6 +93,10 @@ function ReporteIngresos() {
   };
 
   const cargar = async () => {
+    if (cargando) return;
+
+    setCargando(true);
+
     let url = "/api/cilindros/reportes/entradas-salidas?";
     const params = [];
 
@@ -84,8 +114,12 @@ function ReporteIngresos() {
 
     url += params.join("&");
 
-    const res = await apiGet(url);
-    setDatos(res);
+    try {
+      const res = await apiGet(url);
+      setDatos(res);
+    } finally {
+      setCargando(false);
+    }
   };
 
   useEffect(() => {
@@ -131,6 +165,7 @@ function ReporteIngresos() {
 
   return (
     <div>
+      {cargando ? <SccoPageLoading message="Cargando reporte de ingresos..." /> : null}
       <h4>Reporte de Ingresos / Recargas</h4>
 
       <div style={filtros}>
@@ -179,13 +214,14 @@ function ReporteIngresos() {
           <option value="M004">RECARGA</option>
         </select>
 
-        <button onClick={cargar} style={btnBuscar}>
-          Buscar
+        <button onClick={cargar} style={btnBuscar} disabled={cargando}>
+          {cargando ? <SccoInlineLoading message="Buscando..." /> : "Buscar"}
         </button>
 
         <button
           onClick={() => exportarCSV(rowsExport, "ingresos_recargas.csv")}
           style={btnExcel}
+          disabled={cargando}
         >
           Exportar CSV
         </button>
@@ -235,6 +271,7 @@ function ReporteIngresos() {
 
 function ReporteMovimientos() {
   const [datos, setDatos] = useState([]);
+  const [cargando, setCargando] = useState(false);
 
   const [productos, setProductos] = useState([]);
   const [ubicaciones, setUbicaciones] = useState([]);
@@ -260,6 +297,10 @@ function ReporteMovimientos() {
   };
 
   const cargar = async () => {
+    if (cargando) return;
+
+    setCargando(true);
+
     let url = "/api/cilindros/reportes/movimientos?";
     const params = [];
 
@@ -272,8 +313,12 @@ function ReporteMovimientos() {
 
     url += params.join("&");
 
-    const res = await apiGet(url);
-    setDatos(res);
+    try {
+      const res = await apiGet(url);
+      setDatos(res);
+    } finally {
+      setCargando(false);
+    }
   };
 
   useEffect(() => {
@@ -319,6 +364,7 @@ function ReporteMovimientos() {
 
   return (
     <div>
+      {cargando ? <SccoPageLoading message="Cargando reporte de movimientos..." /> : null}
       <h4>Reporte de Despachos / Devoluciones</h4>
 
       <div style={filtros}>
@@ -379,13 +425,14 @@ function ReporteMovimientos() {
           <option value="M003">DEVOLUCIÓN</option>
         </select>
 
-        <button onClick={cargar} style={btnBuscar}>
-          Buscar
+        <button onClick={cargar} style={btnBuscar} disabled={cargando}>
+          {cargando ? <SccoInlineLoading message="Buscando..." /> : "Buscar"}
         </button>
 
         <button
           onClick={() => exportarCSV(rowsExport, "despachos_devoluciones.csv")}
           style={btnExcel}
+          disabled={cargando}
         >
           Exportar CSV
         </button>
@@ -436,6 +483,7 @@ function ReporteMovimientos() {
 function ReporteKardex() {
   const [cilindro, setCilindro] = useState("");
   const [datos, setDatos] = useState([]);
+  const [cargando, setCargando] = useState(false);
 
   const [productos, setProductos] = useState([]);
   const [ubicaciones, setUbicaciones] = useState([]);
@@ -459,16 +507,33 @@ function ReporteKardex() {
   }, []);
 
   const buscar = async () => {
+    if (cargando) return;
+
     if (!cilindro.trim()) {
       alert("Ingrese código de cilindro");
       return;
     }
 
-    const res = await apiGet(
-      `/api/cilindros/reportes/kardex/${cilindro.trim()}`
-    );
+    setCargando(true);
 
-    setDatos(res);
+    try {
+      const res = await apiGet(
+        `/api/cilindros/reportes/kardex/${encodeURIComponent(cilindro.trim())}`
+      );
+
+      if (!Array.isArray(res)) {
+        console.error("Respuesta inesperada del servidor:", res);
+        alert("Error al cargar el kardex: respuesta inv\u00e1lida del servidor.");
+        return;
+      }
+
+      setDatos(res);
+    } catch (error) {
+      console.error("Error kardex:", error);
+      alert(`Error al buscar kardex: ${error.message}`);
+    } finally {
+      setCargando(false);
+    }
   };
 
   const nombreProducto = (codigo) => {
@@ -509,6 +574,7 @@ function ReporteKardex() {
 
   return (
     <div>
+      {cargando ? <SccoPageLoading message="Cargando kardex..." /> : null}
       <h4>Kardex por Cilindro</h4>
 
       <div style={filtros}>
@@ -519,13 +585,14 @@ function ReporteKardex() {
           style={input}
         />
 
-        <button onClick={buscar} style={btnBuscar}>
-          Buscar
+        <button onClick={buscar} style={btnBuscar} disabled={cargando}>
+          {cargando ? <SccoInlineLoading message="Buscando..." /> : "Buscar"}
         </button>
 
         <button
           onClick={() => exportarCSV(rowsExport, `kardex_${cilindro}.csv`)}
           style={btnExcel}
+          disabled={cargando}
         >
           Exportar CSV
         </button>
@@ -666,26 +733,29 @@ const card = {
   boxShadow: "0 0 10px rgba(0,0,0,0.1)"
 };
 
-const tabs = {
+const tabs = (esMovil) => ({
   display: "flex",
   gap: "10px",
   marginBottom: "20px",
-  flexWrap: "wrap"
-};
+  flexDirection: esMovil ? "column" : "row",
+  alignItems: esMovil ? "stretch" : "flex-start"
+});
 
-const btn = {
+const btn = (esMovil) => ({
   padding: "10px 14px",
   border: "none",
   borderRadius: "6px",
-  background: "#718093",
+  background: "#7a9588",
   color: "white",
-  cursor: "pointer"
-};
+  cursor: "pointer",
+  width: esMovil ? "100%" : "auto",
+  textAlign: esMovil ? "left" : "center"
+});
 
-const btnActivo = {
-  ...btn,
-  background: "#273c75"
-};
+const btnActivo = (esMovil) => ({
+  ...btn(esMovil),
+  background: "#1f7a4d"
+});
 
 const filtros = {
   display: "flex",
@@ -705,21 +775,21 @@ const btnBuscar = {
   padding: "10px 15px",
   border: "none",
   borderRadius: "6px",
-  background: "#273c75",
+  background: "#1f7a4d",
   color: "white",
   cursor: "pointer"
 };
 
 const btnExcel = {
   ...btnBuscar,
-  background: "#44bd32"
+  background: "#2f9e63"
 };
 
 const btnObs = {
   padding: "5px 10px",
   border: "none",
   borderRadius: "6px",
-  background: "#40739e",
+  background: "#2d8c5a",
   color: "white",
   cursor: "pointer",
   fontSize: "12px"
@@ -748,7 +818,7 @@ const tabla = {
 };
 
 const th = {
-  background: "#273c75",
+  background: "#1f7a4d",
   color: "white",
   padding: "10px",
   textAlign: "left",

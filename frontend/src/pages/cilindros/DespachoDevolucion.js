@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiGet, apiPost } from "../../services/api";
+import { SccoInlineLoading, SccoPageLoading } from "../../components/SccoLoading";
+import SccoComboBox from "../../components/SccoComboBox";
 
 export default function DespachoDevolucion() {
   const [tipo, setTipo] = useState("M003"); // M002 = DESPACHO, M003 = DEVOLUCION 
@@ -24,12 +26,16 @@ export default function DespachoDevolucion() {
   const [sinCambio, setSinCambio] = useState(false);
 
   const [info, setInfo] = useState("");
+  const [cargandoPantalla, setCargandoPantalla] = useState(true);
+  const [procesando, setProcesando] = useState(false);
+  const solicitudDisponiblesRef = useRef(0);
 
   const codigoUsuario = localStorage.getItem("codigo");
   const nombreUsuario = localStorage.getItem("nombre");
 
   const cargarCombos = async () => {
     try {
+      setCargandoPantalla(true);
       const prod = await apiGet("/api/cilindros/productos");
       const ubi = await apiGet("/api/cilindros/ubicaciones");
       const usu = await apiGet("/api/cilindros/usuarios");
@@ -52,11 +58,14 @@ export default function DespachoDevolucion() {
     } catch (error) {
       console.error(error);
       alert("No se pudieron cargar datos");
+    } finally {
+      setCargandoPantalla(false);
     }
   };
 
   const cargarCilindrosVacios = async (materialSeleccionado) => {
     try {
+      if (procesando) return;
       setCambio("");
       setCilindrosVacios([]);
 
@@ -75,6 +84,8 @@ export default function DespachoDevolucion() {
   };
 
   const cargarDisponibles = async () => {
+    const requestId = ++solicitudDisponiblesRef.current;
+
     try {
       setCilindro("");
       setDisponibles([]);
@@ -83,8 +94,12 @@ export default function DespachoDevolucion() {
       if (!material) return;
 
       const data = await apiGet(
-        `/api/cilindros/disponibles?material=${material}&tipo=${tipo}`
+        `/api/cilindros/disponibles?material=${encodeURIComponent(material)}&tipo=${encodeURIComponent(tipo)}`
       );
+
+      if (requestId !== solicitudDisponiblesRef.current) {
+        return;
+      }
 
       setDisponibles(data);
 
@@ -107,12 +122,24 @@ export default function DespachoDevolucion() {
     cargarDisponibles();
   }, [material, tipo]);
 
+  // Al entrar a modo despacho, refrescar cilindros vacíos para que incluya devoluciones recientes.
+  useEffect(() => {
+    if (tipo === "M002" && material) {
+      cargarCilindrosVacios(material);
+    }
+  }, [tipo, material]);
+
   const cambiarTipo = (nuevoTipo) => {
+    if (procesando) return;
+
+    solicitudDisponiblesRef.current += 1;
     setTipo(nuevoTipo);
     setCilindro("");
     setArea("");
     setResponsable("");
     setInfo("");
+    setCambio("");
+    setCilindrosVacios([]);
     setSinCambio(false);
   };
   
@@ -159,6 +186,8 @@ export default function DespachoDevolucion() {
   };
 
   const guardar = async () => {
+    if (procesando) return;
+
     try {
       if (!material) {
         alert("Seleccione material");
@@ -195,6 +224,8 @@ export default function DespachoDevolucion() {
         return;
       }
 
+      setProcesando(true);
+
       const payload = {
         fecha,
         cilindro,
@@ -214,7 +245,7 @@ export default function DespachoDevolucion() {
       if (res.success) {
         alert("Movimiento registrado correctamente");
         limpiar();
-        cargarDisponibles();
+        await cargarDisponibles();
       } else {
         alert(res.message || "No se pudo registrar");
       }
@@ -222,10 +253,13 @@ export default function DespachoDevolucion() {
     } catch (error) {
       console.error(error);
       alert("Error al registrar movimiento");
+    } finally {
+      setProcesando(false);
     }
   };
 
   const limpiar = () => {
+    solicitudDisponiblesRef.current += 1;
     setFecha(new Date().toISOString().slice(0, 10));
     setCilindro("");
     setArea("");
@@ -240,6 +274,9 @@ export default function DespachoDevolucion() {
 
   return (
     <div style={card}>
+      {cargandoPantalla || procesando ? (
+        <SccoPageLoading message={procesando ? "Procesando movimiento..." : "Cargando datos SCCO..."} />
+      ) : null}
       <h3>Despacho / Devolución</h3>
 
       <div style={tipoBox}>
@@ -247,6 +284,7 @@ export default function DespachoDevolucion() {
         <button
             onClick={() => cambiarTipo("M003")}
             style={tipo === "M003" ? btnDevolucionActivo : btnTipo}
+            disabled={procesando}
           >
             📥 DEVOLUCIÓN
         </button>
@@ -254,6 +292,7 @@ export default function DespachoDevolucion() {
         <button
           onClick={() => cambiarTipo("M002")}
           style={tipo === "M002" ? btnDespachoActivo : btnTipo}
+          disabled={procesando}
         >
           🚚 DESPACHO
         </button>
@@ -266,73 +305,59 @@ export default function DespachoDevolucion() {
             type="date"
             value={fecha}
             onChange={(e) => setFecha(e.target.value.toUpperCase())}
+            disabled={procesando}
             style={input}
           />
         </Campo>
 
         <Campo label="Material">
-          <select
+          <SccoComboBox
+            options={productos.map(p => ({ value: p.codigo, label: p.nombre }))}
             value={material}
-            onChange={(e) => {
-              setMaterial(e.target.value.toUpperCase());
-              cargarCilindrosVacios(e.target.value.toUpperCase());
+            onChange={(val) => {
+              setMaterial(val);
+              cargarCilindrosVacios(val);
             }}
-            style={input}
-          >
-            <option value="">Seleccione</option>
-            {productos.map(p => (
-              <option key={p.codigo} value={p.codigo}>
-                {p.nombre}
-              </option>
-            ))}
-          </select>
+            disabled={procesando}
+            placeholder="Seleccione material"
+            emptyLabel="Seleccione material"
+          />
         </Campo>
 
         <Campo label="Cilindro disponible">
-          <select
+          <SccoComboBox
+            options={disponibles.map(d => ({
+              value: d.cilindro,
+              label: `${d.cilindro} — ${nombreEstado(d.estado)} — ${d.ubicacion ? obtenerNombreArea(d.ubicacion) : "Sin ubicación"}`
+            }))}
             value={cilindro}
-            onChange={(e) => seleccionarCilindro(e.target.value.toUpperCase())}
-            style={input}
-            disabled={disponibles.length === 0}
-          >
-            <option value="">Seleccione cilindro</option>
-            {disponibles.map(d => (
-              <option key={d.cilindro} value={d.cilindro}>
-                {d.cilindro} - {nombreEstado(d.estado)} - {d.ubicacion ? obtenerNombreArea(d.ubicacion) : "Sin ubicación"}
-              </option>
-            ))}
-          </select>
+            onChange={seleccionarCilindro}
+            disabled={disponibles.length === 0 || procesando}
+            placeholder="Seleccione cilindro"
+            emptyLabel="Seleccione cilindro"
+          />
         </Campo>
 
         <Campo label="Área">
-          <select
+          <SccoComboBox
+            options={ubicaciones.map(u => ({ value: u.codigo, label: u.nombre }))}
             value={area}
-            onChange={(e) => setArea(e.target.value.toUpperCase())}
-            style={input}
-            disabled={tipo === "M003"} // En DEVOLUCIÓN el área se autocompleta y no se puede cambiar
-          >
-            <option value="">Seleccione</option>
-            {ubicaciones.map(u => (
-              <option key={u.codigo} value={u.codigo}>
-                {u.nombre}
-              </option>
-            ))}
-          </select>
+            onChange={setArea}
+            disabled={tipo === "M003" || procesando}
+            placeholder="Seleccione área"
+            emptyLabel="Seleccione área"
+          />
         </Campo>
 
         <Campo label="Autorizado por">
-          <select
+          <SccoComboBox
+            options={usuarios.map(u => ({ value: u.codigo, label: u.nombre }))}
             value={encargado}
-            onChange={(e) => setEncargado(e.target.value.toUpperCase())}
-            style={input}
-          >
-            <option value="">Seleccione</option>
-            {usuarios.map(u => (
-              <option key={u.codigo} value={u.codigo}>
-                {u.nombre}
-              </option>
-            ))}
-          </select>
+            onChange={setEncargado}
+            disabled={procesando}
+            placeholder="Seleccione autorizado por"
+            emptyLabel="Seleccione"
+          />
         </Campo>
 
         <Campo label="Usuario que recoge/devuelve">
@@ -341,6 +366,7 @@ export default function DespachoDevolucion() {
             value={responsable}
             onChange={(e) => setResponsable(e.target.value.toUpperCase().toUpperCase())}
             placeholder="Nombre del responsable"
+            disabled={procesando}
             style={input}
           />
         </Campo>
@@ -356,19 +382,17 @@ export default function DespachoDevolucion() {
 
         {tipo === "M002" && !sinCambio && (
           <Campo label="Cilindro de cambio">
-            <select
+            <SccoComboBox
+              options={cilindrosVacios.map(c => ({
+                value: c.cilindro,
+                label: `${c.cilindro} — VACÍO`
+              }))}
               value={cambio}
-              onChange={(e) => setCambio(e.target.value)}
-              style={input}
-              disabled={!material || cilindrosVacios.length === 0}
-            >
-              <option value="">Seleccione cilindro vacío</option>
-              {cilindrosVacios.map(c => (
-                <option key={c.cilindro} value={c.cilindro}>
-                  {c.cilindro} - VACIO
-                </option>
-              ))}
-            </select>
+              onChange={setCambio}
+              disabled={!material || cilindrosVacios.length === 0 || procesando}
+              placeholder="Seleccione cilindro vacío"
+              emptyLabel="Seleccione cilindro vacío"
+            />
           </Campo>
         )}
 
@@ -384,6 +408,7 @@ export default function DespachoDevolucion() {
                     setCambio("");
                   }
                 }}
+                disabled={procesando}
               />
               Despacho sin cilindro de cambio
             </label>
@@ -395,6 +420,7 @@ export default function DespachoDevolucion() {
             value={obs}
             onChange={(e) => setObs(e.target.value.toUpperCase().toUpperCase())}
             placeholder="Escriba alguna ocurrencia..."
+            disabled={procesando}
             style={textarea}
           />
         </Campo>
@@ -408,11 +434,11 @@ export default function DespachoDevolucion() {
       )}
 
       <div style={acciones}>
-        <button onClick={guardar} style={btnGuardar}>
-          Guardar
+        <button onClick={guardar} style={btnGuardar} disabled={procesando}>
+          {procesando ? <SccoInlineLoading message="Guardando..." /> : "Guardar"}
         </button>
 
-        <button onClick={limpiar} style={btnLimpiar}>
+        <button onClick={limpiar} style={btnLimpiar} disabled={procesando}>
           Limpiar
         </button>
       </div>
@@ -446,19 +472,19 @@ const btnTipo = {
   padding: "10px 15px",
   border: "none",
   borderRadius: "6px",
-  background: "#718093",
+  background: "#7a9588",
   color: "white",
   cursor: "pointer"
 };
 
 const btnDespachoActivo = {
   ...btnTipo,
-  background: "#44bd32"
+  background: "#0984e3"
 };
 
 const btnDevolucionActivo = {
   ...btnTipo,
-  background: "#0097e6"
+  background: "#00b4d8"
 };
 
 const grid = {
@@ -506,7 +532,7 @@ const btnGuardar = {
   padding: "10px 20px",
   border: "none",
   borderRadius: "6px",
-  background: "#273c75",
+  background: "#1f7a4d",
   color: "white",
   cursor: "pointer",
   fontWeight: "bold"

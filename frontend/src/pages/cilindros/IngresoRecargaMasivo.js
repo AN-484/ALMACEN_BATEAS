@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiGet, apiPost } from "../../services/api";
+import { SccoInlineLoading, SccoPageLoading } from "../../components/SccoLoading";
+import SccoComboBox from "../../components/SccoComboBox";
 
 export default function IngresoRecargaMasivo() {
   const hoy = new Date().toISOString().slice(0, 10);
@@ -18,6 +20,8 @@ export default function IngresoRecargaMasivo() {
   const [tiposEstado, setTiposEstado] = useState([]);
 
   const [filas, setFilas] = useState([]);
+  const [cargandoPantalla, setCargandoPantalla] = useState(true);
+  const [procesando, setProcesando] = useState(false);
 
   const codigoUsuario = localStorage.getItem("codigo");
   const nombreUsuario = localStorage.getItem("nombre");
@@ -47,6 +51,7 @@ export default function IngresoRecargaMasivo() {
 
   const cargarCombos = async () => {
     try {
+      setCargandoPantalla(true);
       const prod = await apiGet("/api/cilindros/productos");
       const prop = await apiGet("/api/cilindros/propietarios");
       const ubi = await apiGet("/api/cilindros/ubicaciones");
@@ -60,6 +65,8 @@ export default function IngresoRecargaMasivo() {
     } catch (error) {
       console.error(error);
       alert("No se pudieron cargar datos");
+    } finally {
+      setCargandoPantalla(false);
     }
   };
 
@@ -74,6 +81,7 @@ export default function IngresoRecargaMasivo() {
   });
 
   const agregarFila = () => {
+    if (procesando) return;
     setFilas(prev => [...prev, nuevaFila()]);
   };
 
@@ -90,6 +98,8 @@ export default function IngresoRecargaMasivo() {
   };
 
   const verificarCilindro = async (id) => {
+    if (procesando) return;
+
     const fila = filas.find(f => f.id === id);
     if (!fila || !fila.codigo.trim()) return;
 
@@ -106,6 +116,7 @@ export default function IngresoRecargaMasivo() {
     }
 
     try {
+      setProcesando(true);
       const cil = await apiGet(`/api/cilindros/buscar/${codigo}`);
       const est = await apiGet(`/api/cilindros/estado/${codigo}`);
 
@@ -142,10 +153,14 @@ export default function IngresoRecargaMasivo() {
     } catch (error) {
       console.error(error);
       alert("No se pudo verificar cilindro");
+    } finally {
+      setProcesando(false);
     }
   };
 
   const guardarTodo = async () => {
+    if (procesando) return;
+
     if (!guia.trim()) {
       alert("Ingrese número de guía");
       return;
@@ -183,6 +198,7 @@ export default function IngresoRecargaMasivo() {
     }
 
     try {
+      setProcesando(true);
       const payload = {
         fecha,
         tipo,
@@ -211,6 +227,8 @@ export default function IngresoRecargaMasivo() {
     } catch (error) {
       console.error(error);
       alert("Error al registrar ingreso/recarga masiva");
+    } finally {
+      setProcesando(false);
     }
   };
 
@@ -226,12 +244,16 @@ export default function IngresoRecargaMasivo() {
 
   return (
     <div style={card}>
+      {cargandoPantalla || procesando ? (
+        <SccoPageLoading message={procesando ? "Procesando carga masiva..." : "Cargando datos SCCO..."} />
+      ) : null}
       <h3>Ingreso / Recarga Masiva</h3>
 
       <div style={tipoBox}>
         <button
           onClick={() => setTipo("M001")}
           style={tipo === "M001" ? btnIngresoActivo : btnTipo}
+          disabled={procesando}
         >
           📥 INGRESO
         </button>
@@ -239,6 +261,7 @@ export default function IngresoRecargaMasivo() {
         <button
           onClick={() => setTipo("M004")}
           style={tipo === "M004" ? btnRecargaActivo : btnTipo}
+          disabled={procesando}
         >
           🔄 RECARGA
         </button>
@@ -250,6 +273,7 @@ export default function IngresoRecargaMasivo() {
             type="date"
             value={fecha}
             onChange={(e) => setFecha(e.target.value.toUpperCase())}
+            disabled={procesando}
             style={input}
           />
         </Campo>
@@ -259,6 +283,7 @@ export default function IngresoRecargaMasivo() {
             value={guia}
             onChange={(e) => setGuia(e.target.value.toUpperCase())}
             placeholder="Número de guía"
+            disabled={procesando}
             style={input}
           />
         </Campo>
@@ -269,6 +294,7 @@ export default function IngresoRecargaMasivo() {
             maxLength={10}
             onChange={(e) => setNroDocumento(e.target.value.toUpperCase())}
             placeholder="Número documento"
+            disabled={procesando}
             style={input}
           />
         </Campo>
@@ -277,6 +303,7 @@ export default function IngresoRecargaMasivo() {
           <select
             value={transportista}
             onChange={(e) => setTransportista(e.target.value.toUpperCase())}
+            disabled={procesando}
             style={input}
           >
             <option value="">Seleccione</option>
@@ -301,6 +328,7 @@ export default function IngresoRecargaMasivo() {
             value={obs}
             onChange={(e) => setObs(e.target.value.toUpperCase())}
             placeholder="Escriba observaciones para este lote..."
+            disabled={procesando}
             style={textarea}
           />
         </Campo>
@@ -308,8 +336,8 @@ export default function IngresoRecargaMasivo() {
       </div>
 
       <div style={accionesTop}>
-        <button onClick={agregarFila} style={btnAgregar}>
-          + Agregar cilindro
+        <button onClick={agregarFila} style={btnAgregar} disabled={procesando}>
+          {procesando ? <SccoInlineLoading message="Procesando..." /> : "+ Agregar cilindro"}
         </button>
       </div>
 
@@ -337,6 +365,7 @@ export default function IngresoRecargaMasivo() {
                     }
                     onBlur={() => verificarCilindro(fila.id)}
                     placeholder="C001"
+                    disabled={procesando}
                     style={inputTabla}
                   />
                 </td>
@@ -348,6 +377,7 @@ export default function IngresoRecargaMasivo() {
                     onChange={(e) =>
                       actualizarFila(fila.id, "propietario", e.target.value.toUpperCase())
                     }
+                    
                     style={inputTabla}
                   >
                     <option value="">Seleccione</option>
@@ -366,6 +396,7 @@ export default function IngresoRecargaMasivo() {
                     onChange={(e) =>
                       actualizarFila(fila.id, "producto", e.target.value.toUpperCase())
                     }
+                    
                     style={inputTabla}
                   >
                     <option value="">Seleccione</option>
@@ -398,6 +429,7 @@ export default function IngresoRecargaMasivo() {
                 <td style={td}>
                   <button
                     onClick={() => eliminarFila(fila.id)}
+                    disabled={procesando}
                     style={btnEliminar}
                   >
                     ✕
@@ -410,11 +442,11 @@ export default function IngresoRecargaMasivo() {
       </div>
 
       <div style={acciones}>
-        <button onClick={guardarTodo} style={btnGuardar}>
-          Guardar Todo
+        <button onClick={guardarTodo} style={btnGuardar} disabled={procesando}>
+          {procesando ? <SccoInlineLoading message="Guardando..." /> : "Guardar Todo"}
         </button>
 
-        <button onClick={limpiar} style={btnLimpiar}>
+        <button onClick={limpiar} style={btnLimpiar} disabled={procesando}>
           Limpiar
         </button>
       </div>
@@ -448,19 +480,19 @@ const btnTipo = {
   padding: "10px 15px",
   border: "none",
   borderRadius: "6px",
-  background: "#718093",
+  background: "#7a9588",
   color: "white",
   cursor: "pointer"
 };
 
 const btnIngresoActivo = {
   ...btnTipo,
-  background: "#44bd32"
+  background: "#0984e3"
 };
 
 const btnRecargaActivo = {
   ...btnTipo,
-  background: "#e1b12c"
+  background: "#00b4d8"
 };
 
 const grid = {
@@ -498,7 +530,7 @@ const btnAgregar = {
   padding: "10px 15px",
   border: "none",
   borderRadius: "6px",
-  background: "#40739e",
+  background: "#2d8c5a",
   color: "white",
   cursor: "pointer"
 };
@@ -515,7 +547,7 @@ const tabla = {
 };
 
 const th = {
-  background: "#273c75",
+  background: "#1f7a4d",
   color: "white",
   padding: "10px",
   textAlign: "left",
@@ -561,7 +593,7 @@ const btnGuardar = {
   padding: "10px 20px",
   border: "none",
   borderRadius: "6px",
-  background: "#273c75",
+  background: "#1f7a4d",
   color: "white",
   cursor: "pointer",
   fontWeight: "bold"

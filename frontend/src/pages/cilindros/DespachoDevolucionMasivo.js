@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiGet, apiPost } from "../../services/api";
+import { SccoInlineLoading, SccoPageLoading } from "../../components/SccoLoading";
+import SccoComboBox from "../../components/SccoComboBox";
 
 export default function DespachoDevolucionMasivo() {
   const hoy = new Date().toISOString().slice(0, 10);
@@ -25,6 +27,9 @@ export default function DespachoDevolucionMasivo() {
 
   const [areaBloqueada, setAreaBloqueada] = useState(false);
   const [areaDevolucionNombre, setAreaDevolucionNombre] = useState("");
+  const [cargandoPantalla, setCargandoPantalla] = useState(true);
+  const [procesando, setProcesando] = useState(false);
+  const solicitudDisponiblesRef = useRef(0);
 
   const codigoUsuario = localStorage.getItem("codigo");
   const nombreUsuario = localStorage.getItem("nombre");
@@ -37,8 +42,15 @@ export default function DespachoDevolucionMasivo() {
     cargarDisponibles();
   }, [materialBuscar, tipo]);
 
+  // Al pasar a despacho, limpiar y refrescar opciones de cambio para evitar datos obsoletos.
+  useEffect(() => {
+    if (tipo !== "M002") return;
+    setFilas((prev) => prev.map((f) => ({ ...f, cambio: "", vaciosCambio: [] })));
+  }, [tipo]);
+
   const cargarCombos = async () => {
     try {
+      setCargandoPantalla(true);
       const prod = await apiGet("/api/cilindros/productos");
       const ubi = await apiGet("/api/cilindros/ubicaciones");
       const usu = await apiGet("/api/cilindros/usuarios");
@@ -61,18 +73,25 @@ export default function DespachoDevolucionMasivo() {
     } catch (error) {
       console.error(error);
       alert("No se pudieron cargar datos");
+    } finally {
+      setCargandoPantalla(false);
     }
   };
 
   const cargarDisponibles = async () => {
+    const requestId = ++solicitudDisponiblesRef.current;
     setDisponibles([]);
 
     if (!materialBuscar) return;
 
     try {
       const data = await apiGet(
-        `/api/cilindros/disponibles?material=${materialBuscar}&tipo=${tipo}`
+        `/api/cilindros/disponibles?material=${encodeURIComponent(materialBuscar)}&tipo=${encodeURIComponent(tipo)}`
       );
+
+      if (requestId !== solicitudDisponiblesRef.current) {
+        return;
+      }
 
       setDisponibles(data);
     } catch (error) {
@@ -98,6 +117,8 @@ export default function DespachoDevolucionMasivo() {
   };
 
   const cambiarTipo = (nuevoTipo) => {
+    if (procesando) return;
+    solicitudDisponiblesRef.current += 1;
     setTipo(nuevoTipo);
     setMaterialBuscar("");
     setArea("");
@@ -136,6 +157,7 @@ export default function DespachoDevolucionMasivo() {
   };*/
 
   const agregarCilindro = async (codigo) => {
+    if (procesando) return;
     if (!codigo) return;
 
     const yaExiste = filas.some(f => f.cilindro === codigo);
@@ -223,6 +245,8 @@ export default function DespachoDevolucionMasivo() {
   };
 
   const guardarTodo = async () => {
+    if (procesando) return;
+
     if (!area) {
       alert("Seleccione área");
       return;
@@ -262,6 +286,7 @@ export default function DespachoDevolucionMasivo() {
       : areaDevolucionNombre;
 
     try {
+      setProcesando(true);
       const payload = {
         fecha,
         tipo,
@@ -294,16 +319,19 @@ export default function DespachoDevolucionMasivo() {
 
       if (res.registrados > 0) {
         limpiar();
-        cargarDisponibles();
+        await cargarDisponibles();
       }
 
     } catch (error) {
       console.error(error);
       alert("Error al registrar despacho/devolución masiva");
+    } finally {
+      setProcesando(false);
     }
   };
 
   const limpiar = () => {
+    solicitudDisponiblesRef.current += 1;
     setFecha(hoy);
     setMaterialBuscar("");
     setArea("");
@@ -318,12 +346,16 @@ export default function DespachoDevolucionMasivo() {
 
   return (
     <div style={card}>
+      {cargandoPantalla || procesando ? (
+        <SccoPageLoading message={procesando ? "Procesando movimiento masivo..." : "Cargando datos SCCO..."} />
+      ) : null}
       <h3>Despacho / Devolución Masiva</h3>
 
       <div style={tipoBox}>
         <button
           onClick={() => cambiarTipo("M003")}
           style={tipo === "M003" ? btnDevolucionActivo : btnTipo}
+          disabled={procesando}
         >
           📥 DEVOLUCIÓN
         </button>
@@ -331,6 +363,7 @@ export default function DespachoDevolucionMasivo() {
         <button
           onClick={() => cambiarTipo("M002")}
           style={tipo === "M002" ? btnDespachoActivo : btnTipo}
+          disabled={procesando}
         >
           🚚 DESPACHO
         </button>
@@ -343,23 +376,20 @@ export default function DespachoDevolucionMasivo() {
             type="date"
             value={fecha}
             onChange={(e) => setFecha(e.target.value.toUpperCase())}
+            disabled={procesando}
             style={input}
           />
         </Campo>
 
         <Campo label="Material a buscar">
-          <select
+          <SccoComboBox
+            options={productos.map(p => ({ value: p.codigo, label: p.nombre }))}
             value={materialBuscar}
-            onChange={(e) => setMaterialBuscar(e.target.value.toUpperCase())}
-            style={input}
-          >
-            <option value="">Seleccione</option>
-            {productos.map(p => (
-              <option key={p.codigo} value={p.codigo}>
-                {p.nombre}
-              </option>
-            ))}
-          </select>
+            onChange={setMaterialBuscar}
+            disabled={procesando}
+            placeholder="Seleccione material"
+            emptyLabel="Seleccione material"
+          />
         </Campo>
 
         <Campo label="Disponibilidad">
@@ -377,52 +407,41 @@ export default function DespachoDevolucionMasivo() {
         </Campo>
 
         <Campo label="Área">
-          <select
+          <SccoComboBox
+            options={ubicaciones.map(u => ({ value: u.codigo, label: u.nombre }))}
             value={area}
-            onChange={(e) => setArea(e.target.value.toUpperCase())}
-            style={input}
-            disabled={areaBloqueada}
-          >
-            <option value="">Seleccione</option>
-            {ubicaciones.map(u => (
-              <option key={u.codigo} value={u.codigo}>
-                {u.nombre}
-              </option>
-            ))}
-          </select>
+            onChange={setArea}
+            disabled={areaBloqueada || procesando}
+            placeholder="Seleccione área"
+            emptyLabel="Seleccione área"
+          />
         </Campo>
 
         <Campo label="Agregar cilindro">
-          <select
-            value=""
-            onChange={(e) => agregarCilindro(e.target.value.toUpperCase())}
-            style={input}
-            disabled={!materialBuscar || disponibles.length === 0}
-          >
-            <option value="">+ Seleccionar cilindro</option>
-            {disponibles
+          <SccoComboBox
+            options={disponibles
               .filter(d => !filas.some(f => f.cilindro === d.cilindro))
-              .map(d => (
-                <option key={d.cilindro} value={d.cilindro}>
-                  {d.cilindro} - {nombreEstado(d.estado)} - {d.ubicacion ? obtenerNombreArea(d.ubicacion) : "Sin ubicación"}
-                </option>
-              ))}
-          </select>
+              .map(d => ({
+                value: d.cilindro,
+                label: `${d.cilindro} — ${nombreEstado(d.estado)} — ${d.ubicacion ? obtenerNombreArea(d.ubicacion) : "Sin ubicación"}`
+              }))}
+            value=""
+            onChange={agregarCilindro}
+            disabled={!materialBuscar || disponibles.length === 0 || procesando}
+            placeholder="+ Seleccionar cilindro"
+            emptyLabel="Seleccionar cilindro"
+          />
         </Campo>
 
         <Campo label="Autorizado por">
-          <select
+          <SccoComboBox
+            options={usuarios.map(u => ({ value: u.codigo, label: u.nombre }))}
             value={encargado}
-            onChange={(e) => setEncargado(e.target.value.toUpperCase())}
-            style={input}
-          >
-            <option value="">Seleccione</option>
-            {usuarios.map(u => (
-              <option key={u.codigo} value={u.codigo}>
-                {u.nombre}
-              </option>
-            ))}
-          </select>
+            onChange={setEncargado}
+            disabled={procesando}
+            placeholder="Seleccione autorizado por"
+            emptyLabel="Seleccione"
+          />
         </Campo>
 
         <Campo label="Usuario que recoge/devuelve">
@@ -430,6 +449,7 @@ export default function DespachoDevolucionMasivo() {
             value={responsable}
             onChange={(e) => setResponsable(e.target.value.toUpperCase().toUpperCase())}
             placeholder="Nombre del responsable"
+            disabled={procesando}
             style={input}
           />
         </Campo>
@@ -452,6 +472,7 @@ export default function DespachoDevolucionMasivo() {
                     );
                   }
                 }}
+                disabled={procesando}
               />
               Despacho sin cilindro de cambio
             </label>
@@ -471,6 +492,7 @@ export default function DespachoDevolucionMasivo() {
             value={obs}
             onChange={(e) => setObs(e.target.value.toUpperCase().toUpperCase())}
             placeholder="Escriba observaciones para este lote..."
+            disabled={procesando}
             style={textarea}
           />
         </Campo>
@@ -509,27 +531,24 @@ export default function DespachoDevolucionMasivo() {
                 <td style={td}>{f.ubicacion}</td>
                 {tipo === "M002" && !sinCambio && (
                   <td style={td}>
-                    <select
-                      value={f.cambio || ""}
-                      onChange={(e) =>
-                        actualizarCambioFila(f.cilindro, e.target.value)
-                      }
-                      style={inputTabla}
-                    >
-                      <option value="">Seleccione</option>
-                      {f.vaciosCambio
+                    <SccoComboBox
+                      options={f.vaciosCambio
                         .filter(v => v.cilindro !== f.cilindro)
-                        .map(v => (
-                          <option key={v.cilindro} value={v.cilindro}>
-                            {v.cilindro}
-                          </option>
-                        ))}
-                    </select>
+                        .map(v => ({ value: v.cilindro, label: v.cilindro }))}
+                      value={f.cambio || ""}
+                      onChange={(val) => actualizarCambioFila(f.cilindro, val)}
+                      disabled={procesando}
+                      placeholder="Seleccione"
+                      emptyLabel="Seleccione"
+                      dropdownDirection="up"
+                      wrapperStyle={{ minWidth: "160px" }}
+                    />
                   </td>
                 )}
                 <td style={td}>
                   <button
                     onClick={() => eliminarFila(f.cilindro)}
+                    disabled={procesando}
                     style={btnEliminar}
                   >
                     ✕
@@ -548,11 +567,11 @@ export default function DespachoDevolucionMasivo() {
       </div>
 
       <div style={acciones}>
-        <button onClick={guardarTodo} style={btnGuardar}>
-          Guardar Todo
+        <button onClick={guardarTodo} style={btnGuardar} disabled={procesando}>
+          {procesando ? <SccoInlineLoading message="Guardando..." /> : "Guardar Todo"}
         </button>
 
-        <button onClick={limpiar} style={btnLimpiar}>
+        <button onClick={limpiar} style={btnLimpiar} disabled={procesando}>
           Limpiar
         </button>
       </div>
@@ -586,19 +605,19 @@ const btnTipo = {
   padding: "10px 15px",
   border: "none",
   borderRadius: "6px",
-  background: "#718093",
+  background: "#7a9588",
   color: "white",
   cursor: "pointer"
 };
 
 const btnDespachoActivo = {
   ...btnTipo,
-  background: "#44bd32"
+  background: "#0984e3"
 };
 
 const btnDevolucionActivo = {
   ...btnTipo,
-  background: "#0097e6"
+  background: "#00b4d8"
 };
 
 const grid = {
@@ -656,7 +675,7 @@ const tabla = {
 };
 
 const th = {
-  background: "#273c75",
+  background: "#1f7a4d",
   color: "white",
   padding: "10px",
   textAlign: "left",
@@ -688,7 +707,7 @@ const btnGuardar = {
   padding: "10px 20px",
   border: "none",
   borderRadius: "6px",
-  background: "#273c75",
+  background: "#1f7a4d",
   color: "white",
   cursor: "pointer",
   fontWeight: "bold"

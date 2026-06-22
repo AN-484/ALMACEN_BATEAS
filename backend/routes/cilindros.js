@@ -736,7 +736,7 @@ router.get("/reportes/kardex/:cilindro", async (req, res) => {
     if (errorMovimientos) throw errorMovimientos;
 
     const kardex = [
-      ...entradas.map(e => ({
+      ...(entradas || []).map(e => ({
         fecha: e.fecha,
         cilindro: e.cilindro,
         tipo: e.tipo,
@@ -747,7 +747,7 @@ router.get("/reportes/kardex/:cilindro", async (req, res) => {
         registrado_por: e.registrado_por,
         obs_id: e.obs_id || null
       })),
-      ...movimientos.map(m => ({
+      ...(movimientos || []).map(m => ({
         fecha: m.fecha,
         cilindro: m.cilindro,
         tipo: m.tipo,
